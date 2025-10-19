@@ -35,6 +35,20 @@ namespace DuckovESP
         private ESPConfig _config;
         private ESPConfigMenu _configMenu;
         
+        // 自动瞄准系统
+        private AimbotSystem _aimbotSystem;
+        
+        // 敌人ESP系统
+        private EnemyDetector _enemyDetector;
+        private EnemyESPRenderer _enemyESPRenderer;
+        private EnemyListWindow _enemyListWindow;
+        
+        // 任务物品检测器
+        private QuestItemDetector _questItemDetector;
+        
+        // 作弊系统
+        private CheatSystem _cheatSystem;
+        
         // 兼容旧代码的配置属性（从_config读取）
         private bool _showLowValueItems => _config.ShowEmptyBoxes;
         private int _minQualityFilter => _config.MinQualityForMapMarkers;
@@ -65,6 +79,23 @@ namespace DuckovESP
             _config = ESPConfig.Load();
             _configMenu = new ESPConfigMenu(_config);
             
+            // 初始化自动瞄准系统
+            _aimbotSystem = new AimbotSystem(_config);
+            
+            // 初始化敌人ESP系统
+            _enemyDetector = new EnemyDetector(_config);
+            _enemyESPRenderer = new EnemyESPRenderer(_config);
+            _enemyListWindow = new EnemyListWindow(_config);
+            
+            // 初始化任务物品检测器
+            _questItemDetector = new QuestItemDetector();
+            
+            // 初始化作弊系统
+            _cheatSystem = new CheatSystem(_config);
+            
+            // 将作弊系统引用传递给自动瞄准系统
+            _aimbotSystem.SetCheatSystem(_cheatSystem);
+            
             // 创建共享白色纹理（用于所有GUI绘制）
             if (_whiteTexture == null)
             {
@@ -76,7 +107,11 @@ namespace DuckovESP
             Debug.Log("箱子物品透视ESP已启动");
             Debug.Log($"3D ESP: {(_config.Enable3DESP ? "启用" : "禁用")}");
             Debug.Log($"小地图标记: {(_config.EnableMapMarkers ? "启用" : "禁用")}");
+            Debug.Log($"敌人ESP: {(_config.EnableEnemyESP ? "启用" : "禁用")}");
+            Debug.Log($"自动瞄准: {(_config.EnableAimbot ? "⚠️启用" : "禁用")}");
+            Debug.Log($"自动扳机: {(_config.EnableTriggerBot ? "⚠️启用" : "禁用")}");
             Debug.Log($"按 {_config.MenuToggleKey} 打开配置菜单");
+            Debug.Log("作弊功能: F7=无敌 F8=一击必杀 F9=速度 F10=负重 F11=子弹 F12=耐力");
             
             // 初始化GUI样式
             InitializeGUIStyle();
@@ -114,6 +149,16 @@ namespace DuckovESP
             // 清理所有标记
             ClearAllMarkers();
             
+            // 清理敌人ESP渲染器资源
+            _enemyESPRenderer?.Dispose();
+            
+            // 清理物品连线材质
+            if (_itemLineMaterial != null)
+            {
+                UnityEngine.Object.DestroyImmediate(_itemLineMaterial);
+                _itemLineMaterial = null;
+            }
+            
             Debug.Log("DuckovESP: 已清理并禁用");
         }
 
@@ -122,6 +167,9 @@ namespace DuckovESP
             Debug.Log("DuckovESP: 关卡初始化，清理旧数据");
             ClearAllMarkers();
             _scanTimer = 0f;
+            
+            // 重置作弊系统状态
+            _cheatSystem?.OnLevelUnload();
         }
 
         private void OnAfterLevelInitialized()
@@ -152,6 +200,12 @@ namespace DuckovESP
             {
                 _configMenu.ToggleMenu();
             }
+            
+            // 检查敌人列表窗口切换
+            if (Input.GetKeyDown(_config.EnemyListToggleKey))
+            {
+                _enemyListWindow?.ToggleWindow();
+            }
 
             // 定时扫描小地图标记
             _scanTimer -= Time.unscaledDeltaTime;
@@ -174,6 +228,24 @@ namespace DuckovESP
 
             // 更新标记位置
             UpdateMarkerPositions();
+            
+            // 更新敌人检测系统
+            if (_config.EnableEnemyESP && CharacterMainControl.Main != null)
+            {
+                _enemyDetector?.Update(CharacterMainControl.Main);
+            }
+            
+            // 更新任务物品检测器
+            if (_config.HighlightQuestItems || _config.HighlightBuildingMaterials)
+            {
+                _questItemDetector?.Update();
+            }
+            
+            // 更新自动瞄准系统
+            _aimbotSystem?.Update();
+            
+            // 更新作弊系统
+            _cheatSystem?.Update();
             
             // 更新GUI样式（如果配置改变了）
             if (_espTextStyle != null && _espTextStyle.fontSize != _config.ESPFontSize)
@@ -209,6 +281,18 @@ namespace DuckovESP
                 playerPos = player.transform.position;
             }
             
+            // 1. 扫描箱子中的物品
+            ScanLootboxItems(playerPos);
+            
+            // 2. 扫描地图上直接生成的物品（不在箱子里的ItemAgent）
+            ScanWorldItems(playerPos);
+        }
+        
+        /// <summary>
+        /// 扫描箱子中的物品
+        /// </summary>
+        private void ScanLootboxItems(Vector3 playerPos)
+        {
             // 使用已追踪的箱子列表，而不是FindObjectsOfType
             foreach (var kvp in _trackedLootboxes)
             {
@@ -246,7 +330,7 @@ namespace DuckovESP
                 if (items == null || items.Count == 0)
                     continue;
                 
-                // 应用3D ESP的品质过滤 + 钥匙特殊逻辑
+                // 应用3D ESP的品质过滤 + 钥匙特殊逻辑 + 任务/建筑材料特殊逻辑
                 List<Item> filteredItems = new List<Item>();
                 
                 foreach (Item item in items)
@@ -257,8 +341,16 @@ namespace DuckovESP
                     // 检查是否是未录入的钥匙
                     bool isUnregisteredKey = IsUnregisteredKey(item);
                     
-                    // 如果是未录入的钥匙，直接添加
-                    if (isUnregisteredKey)
+                    // 检查是否是任务物品或建筑材料
+                    bool isQuestOrBuilding = false;
+                    if (_questItemDetector != null)
+                    {
+                        isQuestOrBuilding = (_config.HighlightQuestItems && _questItemDetector.IsQuestRequiredItem(item)) ||
+                                           (_config.HighlightBuildingMaterials && _questItemDetector.IsBuildingRequiredItem(item));
+                    }
+                    
+                    // 如果是未录入的钥匙或任务/建筑材料，直接添加（绕过品质过滤）
+                    if (isUnregisteredKey || isQuestOrBuilding)
                     {
                         filteredItems.Add(item);
                         continue;
@@ -305,6 +397,83 @@ namespace DuckovESP
                 });
             }
         }
+        
+        /// <summary>
+        /// 扫描地图上直接生成的物品（不在箱子里的ItemAgent）
+        /// </summary>
+        private void ScanWorldItems(Vector3 playerPos)
+        {
+            try
+            {
+                // 查找所有活跃的 ItemAgent（拾取类型）
+                DuckovItemAgent[] allItemAgents = UnityEngine.Object.FindObjectsOfType<DuckovItemAgent>();
+                
+                foreach (DuckovItemAgent itemAgent in allItemAgents)
+                {
+                    if (itemAgent == null || !itemAgent.gameObject.activeInHierarchy)
+                        continue;
+                    
+                    // 只扫描pickup类型的ItemAgent（地图上的物品）
+                    if (itemAgent.AgentType != ItemAgent.AgentTypes.pickUp)
+                        continue;
+                    
+                    // 获取关联的Item
+                    Item item = itemAgent.Item;
+                    if (item == null)
+                        continue;
+                    
+                    Vector3 itemPos = itemAgent.transform.position;
+                    
+                    // 计算距离
+                    float distance = Vector3.Distance(playerPos, itemPos);
+                    
+                    // 超出距离不显示
+                    if (distance > _maxESPDistance)
+                        continue;
+                    
+                    // 转换为屏幕坐标检查是否在视野内
+                    Vector3 screenPos = _mainCamera.WorldToScreenPoint(itemPos);
+                    
+                    // 在摄像机后面不显示
+                    if (screenPos.z <= 0)
+                        continue;
+                    
+                    // 应用品质过滤
+                    ItemValueLevel itemLevel = ItemQualityUtil.GetItemValueLevel(item);
+                    
+                    // 检查是否是未录入的钥匙（钥匙总是显示）
+                    bool isUnregisteredKey = IsUnregisteredKey(item);
+                    
+                    // 检查是否是任务物品或建筑材料
+                    bool isQuestOrBuilding = false;
+                    if (_questItemDetector != null)
+                    {
+                        isQuestOrBuilding = (_config.HighlightQuestItems && _questItemDetector.IsQuestRequiredItem(item)) ||
+                                           (_config.HighlightBuildingMaterials && _questItemDetector.IsBuildingRequiredItem(item));
+                    }
+                    
+                    // 品质过滤：如果不是钥匙且不是任务/建筑材料且品质低于阈值，跳过
+                    if (!isUnregisteredKey && !isQuestOrBuilding && (int)itemLevel < _config.MinQualityFilter3D)
+                        continue;
+                    
+                    // 创建单个物品的列表
+                    List<Item> singleItemList = new List<Item> { item };
+                    
+                    // 添加到缓存
+                    _espDataCache.Add(new ESPData
+                    {
+                        worldPosition = itemPos,
+                        items = singleItemList,
+                        distance = distance,
+                        maxLevel = itemLevel
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"DuckovESP: 扫描地图物品时出错 - {ex.Message}");
+            }
+        }
 
         /// <summary>
         /// 在屏幕上绘制3D ESP标记（使用缓存数据）
@@ -314,6 +483,22 @@ namespace DuckovESP
             // 绘制配置菜单（总是检查，即使不在关卡中）
             _configMenu?.DrawMenu();
             
+            // 绘制敌人列表窗口
+            if (_config.EnableEnemyESP && LevelManager.LevelInited)
+            {
+                var enemyList = _enemyDetector?.GetEnemyInfoList();
+                if (enemyList != null)
+                {
+                    _enemyListWindow?.DrawWindow(enemyList);
+                }
+            }
+            
+            // 绘制作弊功能状态指示器
+            if (LevelManager.LevelInited && _cheatSystem != null)
+            {
+                DrawCheatStatusIndicator();
+            }
+            
             if (!_enable3DESP || !LevelManager.LevelInited || _mainCamera == null)
                 return;
 
@@ -321,6 +506,16 @@ namespace DuckovESP
             if (_espTextStyle == null)
             {
                 InitializeGUIStyle();
+            }
+            
+            // 绘制敌人ESP标签
+            if (_config.EnableEnemyESP && CharacterMainControl.Main != null)
+            {
+                var enemyList = _enemyDetector?.GetEnemyInfoList();
+                if (enemyList != null && enemyList.Count > 0)
+                {
+                    _enemyESPRenderer?.DrawESPLabels(enemyList, _mainCamera, _espTextStyle);
+                }
             }
 
             // 获取玩家屏幕位置
@@ -352,7 +547,263 @@ namespace DuckovESP
                 DrawESPBox(screenPos, espData.items, espData.distance, espData.maxLevel, playerScreenPos);
             }
         }
+        
+        /// <summary>
+        /// 在渲染时绘制GL线条（敌人连线 + 物品连线）
+        /// </summary>
+        private void OnRenderObject()
+        {
+            if (!LevelManager.LevelInited || _mainCamera == null)
+                return;
+            
+            var player = CharacterMainControl.Main;
+            if (player == null)
+                return;
+            
+            // 绘制敌人连线
+            if (_config.EnableEnemyESP && _config.EnableEnemyLines)
+            {
+                var enemyList = _enemyDetector?.GetEnemyInfoList();
+                if (enemyList != null && enemyList.Count > 0)
+                {
+                    _enemyESPRenderer?.DrawLines(enemyList, player, _mainCamera);
+                }
+            }
+            
+            // 绘制物品连线（使用相同的GL渲染方式）
+            if (_enable3DESP && _config.ShowConnectLine)
+            {
+                DrawItemLines(player);
+            }
+        }
+        
+        /// <summary>
+        /// 绘制物品连线（使用GL，与敌人连线样式一致）
+        /// 只绘制在小地图上有标记的物品连线
+        /// </summary>
+        private void DrawItemLines(CharacterMainControl player)
+        {
+            if (_espDataCache.Count == 0 || _enemyESPRenderer == null)
+                return;
+            
+            Vector3 playerPos = player.transform.position + Vector3.up * 1.5f;
+            
+            // 使用敌人渲染器的材质
+            var lineMaterial = GetOrCreateLineMaterial();
+            if (lineMaterial == null)
+                return;
+            
+            GL.PushMatrix();
+            lineMaterial.SetPass(0);
+            GL.LoadOrtho();
+            GL.Begin(GL.LINES);
+            
+            foreach (var espData in _espDataCache)
+            {
+                // 检查这个物品位置是否有对应的小地图标记
+                bool hasMapMarker = false;
+                foreach (var markerData in _trackedLootboxes.Values)
+                {
+                    if (markerData.lootbox != null && 
+                        Vector3.Distance(markerData.lootbox.transform.position, espData.worldPosition) < 0.1f)
+                    {
+                        hasMapMarker = true;
+                        break;
+                    }
+                }
+                
+                // 如果没有小地图标记，跳过绘制连线
+                if (!hasMapMarker)
+                    continue;
+                
+                Vector3 playerScreen = _mainCamera.WorldToScreenPoint(playerPos);
+                Vector3 itemScreen = _mainCamera.WorldToScreenPoint(espData.worldPosition);
+                
+                // 检查是否在屏幕前方
+                if (playerScreen.z <= 0 || itemScreen.z <= 0) 
+                    continue;
+                
+                // 转换为GL坐标 (0-1范围)
+                Vector2 p1 = new Vector2(playerScreen.x / Screen.width, playerScreen.y / Screen.height);
+                Vector2 p2 = new Vector2(itemScreen.x / Screen.width, itemScreen.y / Screen.height);
+                
+                // 获取物品颜色（与ESP标记一致）
+                Color lineColor = ItemQualityUtil.GetItemValueLevelColor(espData.maxLevel);
+                
+                // 检查是否是任务物品或建筑材料
+                if (_questItemDetector != null && espData.items.Count > 0)
+                {
+                    bool isQuestItem = _config.HighlightQuestItems && 
+                        espData.items.Any(item => _questItemDetector.IsQuestRequiredItem(item));
+                    bool isBuildingMaterial = _config.HighlightBuildingMaterials && 
+                        espData.items.Any(item => _questItemDetector.IsBuildingRequiredItem(item));
+                    
+                    if (isQuestItem)
+                        lineColor = _config.QuestItemColor;
+                    else if (isBuildingMaterial)
+                        lineColor = _config.BuildingMaterialColor;
+                }
+                
+                lineColor.a = 0.6f; // 半透明
+                GL.Color(lineColor);
+                
+                // 绘制粗线条（与敌人连线相同的宽度）
+                DrawThickLineGL(p1, p2, _config.EnemyLineWidth);
+            }
+            
+            GL.End();
+            GL.PopMatrix();
+        }
+        
+        private Material _itemLineMaterial;
+        
+        /// <summary>
+        /// 获取或创建线条材质
+        /// </summary>
+        private Material GetOrCreateLineMaterial()
+        {
+            if (_itemLineMaterial == null)
+            {
+                var shader = Shader.Find("Hidden/Internal-Colored") ?? Shader.Find("Sprites/Default");
+                if (shader != null)
+                {
+                    _itemLineMaterial = new Material(shader)
+                    {
+                        hideFlags = HideFlags.HideAndDontSave
+                    };
+                    _itemLineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    _itemLineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    _itemLineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+                    _itemLineMaterial.SetInt("_ZWrite", 0);
+                }
+            }
+            return _itemLineMaterial;
+        }
+        
+        /// <summary>
+        /// 绘制粗线条（GL版本）
+        /// </summary>
+        private void DrawThickLineGL(Vector2 p1, Vector2 p2, float width)
+        {
+            float offset = width / Screen.width;
+            
+            // 主线
+            GL.Vertex3(p1.x, p1.y, 0f);
+            GL.Vertex3(p2.x, p2.y, 0f);
+            
+            // 增加厚度（绘制多条偏移线）
+            for (int i = 1; i <= 2; i++)
+            {
+                float o = offset * i;
+                
+                // 水平偏移
+                GL.Vertex3(p1.x + o, p1.y, 0f);
+                GL.Vertex3(p2.x + o, p2.y, 0f);
+                
+                GL.Vertex3(p1.x - o, p1.y, 0f);
+                GL.Vertex3(p2.x - o, p2.y, 0f);
+                
+                // 垂直偏移
+                GL.Vertex3(p1.x, p1.y + o, 0f);
+                GL.Vertex3(p2.x, p2.y + o, 0f);
+                
+                GL.Vertex3(p1.x, p1.y - o, 0f);
+                GL.Vertex3(p2.x, p2.y - o, 0f);
+            }
+        }
 
+        /// <summary>
+        /// 绘制作弊功能状态指示器
+        /// </summary>
+        private void DrawCheatStatusIndicator()
+        {
+            // 获取当前激活的作弊功能
+            List<string> activeCheatsList = new List<string>();
+            
+            if (_cheatSystem.IsGodModeEnabled())
+                activeCheatsList.Add("<color=#FFD700>无敌模式</color>");
+            
+            if (_cheatSystem.IsOneHitKillEnabled())
+                activeCheatsList.Add("<color=#FF4444>一击必杀</color>");
+            
+            if (_cheatSystem.IsSpeedBoostEnabled())
+                activeCheatsList.Add("<color=#44FF44>速度提升</color>");
+            
+            if (_cheatSystem.IsInfiniteWeightEnabled())
+                activeCheatsList.Add("<color=#00FFFF>无限负重</color>");
+            
+            if (_cheatSystem.IsInfiniteAmmoEnabled())
+                activeCheatsList.Add("<color=#FFA500>无限子弹</color>");
+            
+            if (_cheatSystem.IsInfiniteStaminaEnabled())
+                activeCheatsList.Add("<color=#FF00FF>无限耐力</color>");
+            
+            // 如果没有激活的作弊功能，不显示
+            if (activeCheatsList.Count == 0)
+                return;
+            
+            // 创建显示文本
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("【作弊功能】");
+            foreach (string cheat in activeCheatsList)
+            {
+                sb.AppendLine($"• {cheat}");
+            }
+            
+            // 设置文本样式
+            GUIStyle indicatorStyle = new GUIStyle(GUI.skin.box)
+            {
+                fontSize = 14,
+                alignment = TextAnchor.UpperLeft,
+                normal = { background = MakeBackgroundTexture(2, 2, new Color(0f, 0f, 0f, 0.7f)) },
+                padding = new RectOffset(10, 10, 10, 10),
+                richText = true
+            };
+            
+            GUIStyle textStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14,
+                alignment = TextAnchor.UpperLeft,
+                normal = { textColor = Color.white },
+                richText = true,
+                wordWrap = false
+            };
+            
+            // 计算内容大小
+            string content = sb.ToString().TrimEnd();
+            Vector2 contentSize = textStyle.CalcSize(new GUIContent(content));
+            
+            // 在屏幕左上角绘制（考虑padding）
+            float x = 10f;
+            float y = 10f;
+            float width = contentSize.x + 20f;
+            float height = contentSize.y + 20f;
+            
+            Rect boxRect = new Rect(x, y, width, height);
+            Rect textRect = new Rect(x + 10f, y + 10f, contentSize.x, contentSize.y);
+            
+            // 绘制背景框和文本
+            GUI.Box(boxRect, "", indicatorStyle);
+            GUI.Label(textRect, content, textStyle);
+        }
+        
+        /// <summary>
+        /// 创建纯色背景纹理
+        /// </summary>
+        private Texture2D MakeBackgroundTexture(int width, int height, Color color)
+        {
+            Color[] pixels = new Color[width * height];
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                pixels[i] = color;
+            }
+            
+            Texture2D texture = new Texture2D(width, height);
+            texture.SetPixels(pixels);
+            texture.Apply();
+            return texture;
+        }
+        
         /// <summary>
         /// 绘制单个ESP框和信息（优化版：接收预计算的品质）
         /// </summary>
@@ -384,20 +835,27 @@ namespace DuckovESP
                         itemName = $"{itemName} x{item.StackCount}";
                     }
                     
+                    // 检查是否是任务物品或建筑材料
+                    string requirementTag = "";
+                    if (_questItemDetector != null)
+                    {
+                        requirementTag = _questItemDetector.GetItemRequirementType(item);
+                    }
+                    
                     // 检查是否是未录入的钥匙
                     bool isUnregisteredKey = IsUnregisteredKey(item);
                     
                     if (isUnregisteredKey)
                     {
                         // 未录入的钥匙用特殊标记
-                        sb.AppendLine($"[🔑未录入] {itemName}");
+                        sb.AppendLine($"[🔑未录入]{requirementTag} {itemName}");
                     }
                     else
                     {
                         // 根据新的品质系统添加颜色标记
                         ItemValueLevel level = ItemQualityUtil.GetItemValueLevel(item);
                         string qualityTag = $"[{ItemQualityUtil.GetQualityName(level)}]";
-                        sb.AppendLine($"{qualityTag} {itemName}");
+                        sb.AppendLine($"{qualityTag}{requirementTag} {itemName}");
                     }
                     
                     displayCount++;
@@ -427,12 +885,52 @@ namespace DuckovESP
                 // 获取品质颜色
                 Color itemColor = ItemQualityUtil.GetItemValueLevelColor(maxLevel);
                 
+                // 检查是否包含任务物品或建筑材料，如果是则使用特殊颜色
+                bool hasQuestItem = false;
+                bool hasBuildingMaterial = false;
+                if (_questItemDetector != null)
+                {
+                    foreach (Item item in items)
+                    {
+                        if (_config.HighlightQuestItems && _questItemDetector.IsQuestRequiredItem(item))
+                        {
+                            hasQuestItem = true;
+                        }
+                        if (_config.HighlightBuildingMaterials && _questItemDetector.IsBuildingRequiredItem(item))
+                        {
+                            hasBuildingMaterial = true;
+                        }
+                    }
+                }
+                
+                // 如果包含任务物品或建筑材料，使用特殊边框颜色
+                Color borderColor = itemColor;
+                if (hasQuestItem && hasBuildingMaterial)
+                {
+                    // 同时是任务物品和建筑材料，混合颜色
+                    borderColor = Color.Lerp(_config.QuestItemColor, _config.BuildingMaterialColor, 0.5f);
+                }
+                else if (hasQuestItem)
+                {
+                    borderColor = _config.QuestItemColor;
+                }
+                else if (hasBuildingMaterial)
+                {
+                    borderColor = _config.BuildingMaterialColor;
+                }
+                
                 // 绘制半透明背景
                 Color bgColor = new Color(0, 0, 0, _config.BackgroundAlpha);
                 DrawRectFast(backgroundRect, bgColor);
                 
-                // 绘制边框
-                DrawRectOutlineFast(backgroundRect, itemColor, _config.BorderThickness);
+                // 绘制边框（使用特殊颜色或品质颜色）
+                float borderThickness = _config.BorderThickness;
+                // 如果是任务/建筑物品，边框加粗
+                if (hasQuestItem || hasBuildingMaterial)
+                {
+                    borderThickness *= 1.5f;
+                }
+                DrawRectOutlineFast(backgroundRect, borderColor, borderThickness);
                 
                 // 设置文本颜色并绘制
                 _espTextStyle.normal.textColor = itemColor;
@@ -444,13 +942,7 @@ namespace DuckovESP
                 );
                 GUI.Label(textRect, text, _espTextStyle);
                 
-                // 绘制从角色到箱子的连线（如果启用）
-                if (_config.ShowConnectLine)
-                {
-                    DrawLineFast(playerScreenPos, 
-                            new Vector2(screenPos.x, screenPos.y), 
-                            itemColor, 1f);
-                }
+                // 注意：连线现在在 OnRenderObject() 中使用 GL 绘制，与敌人连线统一样式
             }
             catch
             {
@@ -649,7 +1141,7 @@ namespace DuckovESP
                     // 获取物品列表
                     List<Item> items = GetItemsFromInventory(inventory);
                     
-                    // 应用品质过滤（使用新的ItemValueLevel系统）+ 钥匙特殊逻辑
+                    // 应用品质过滤（使用新的ItemValueLevel系统）+ 钥匙特殊逻辑 + 任务/建筑材料特殊逻辑
                     List<Item> filteredItems = new List<Item>();
                     
                     foreach (Item item in items)
@@ -660,8 +1152,16 @@ namespace DuckovESP
                         // 检查是否是未录入的钥匙
                         bool isUnregisteredKey = IsUnregisteredKey(item);
                         
-                        // 如果是未录入的钥匙，直接添加
-                        if (isUnregisteredKey)
+                        // 检查是否是任务物品或建筑材料
+                        bool isQuestOrBuilding = false;
+                        if (_questItemDetector != null)
+                        {
+                            isQuestOrBuilding = (_config.HighlightQuestItems && _questItemDetector.IsQuestRequiredItem(item)) ||
+                                               (_config.HighlightBuildingMaterials && _questItemDetector.IsBuildingRequiredItem(item));
+                        }
+                        
+                        // 如果是未录入的钥匙或任务/建筑材料，直接添加（绕过品质过滤）
+                        if (isUnregisteredKey || isQuestOrBuilding)
                         {
                             filteredItems.Add(item);
                             continue;
@@ -818,15 +1318,16 @@ namespace DuckovESP
                 // 添加地图标记组件
                 SimplePointOfInterest poi = markerObj.AddComponent<SimplePointOfInterest>();
                 
-                // 根据物品品质设置颜色
+                // 根据物品品质和任务需求设置颜色
                 Color markerColor = GetMarkerColorByQuality(items);
                 poi.Color = markerColor;
                 poi.ShadowColor = Color.black;
                 poi.ShadowDistance = 0f;
 
-                // 设置标记图标和文本
+                // 设置标记图标和文本（带任务/建筑材料标记）
                 Sprite icon = GetMarkerIcon();
-                poi.Setup(icon, boxName, true, null);
+                string markerText = GetMarkerTextWithTags(boxName, items);
+                poi.Setup(icon, markerText, true, null);
 
                 // 移动到主场景
                 if (MultiSceneCore.MainScene != null)
@@ -880,14 +1381,84 @@ namespace DuckovESP
 
         /// <summary>
         /// 根据物品品质获取标记颜色 - 使用新的ItemValueLevel系统
+        /// 优先级：任务物品 > 高价值物品(紫色+) > 建筑材料 > 普通物品颜色
         /// </summary>
         private Color GetMarkerColorByQuality(List<Item> items)
         {
             if (items.Count == 0)
                 return Color.gray;
 
+            // 最高优先级：检查是否有任务物品
+            if (_questItemDetector != null && _config.HighlightQuestItems)
+            {
+                foreach (Item item in items)
+                {
+                    if (_questItemDetector.IsQuestRequiredItem(item))
+                    {
+                        return _config.QuestItemColor; // 任务物品用黄色
+                    }
+                }
+            }
+            
+            // 计算最高品质
             ItemValueLevel maxLevel = items.Max(item => ItemQualityUtil.GetItemValueLevel(item));
+            
+            // 次高优先级：高价值物品（紫色及以上）优先于建筑材料
+            if ((int)maxLevel >= (int)ItemValueLevel.Purple)
+            {
+                return ItemQualityUtil.GetItemValueLevelColor(maxLevel);
+            }
+            
+            // 第三优先级：检查是否有建筑材料
+            if (_questItemDetector != null && _config.HighlightBuildingMaterials)
+            {
+                foreach (Item item in items)
+                {
+                    if (_questItemDetector.IsBuildingRequiredItem(item))
+                    {
+                        return _config.BuildingMaterialColor; // 建筑材料用青色
+                    }
+                }
+            }
+
+            // 最低优先级：使用品质颜色
             return ItemQualityUtil.GetItemValueLevelColor(maxLevel);
+        }
+        
+        /// <summary>
+        /// 获取带任务/建筑材料标记的文本
+        /// </summary>
+        private string GetMarkerTextWithTags(string baseName, List<Item> items)
+        {
+            if (_questItemDetector == null || items.Count == 0)
+                return baseName;
+            
+            // 检查是否有任务物品或建筑材料
+            bool hasQuestItem = false;
+            bool hasBuildingMaterial = false;
+            
+            foreach (Item item in items)
+            {
+                if (_config.HighlightQuestItems && _questItemDetector.IsQuestRequiredItem(item))
+                {
+                    hasQuestItem = true;
+                }
+                if (_config.HighlightBuildingMaterials && _questItemDetector.IsBuildingRequiredItem(item))
+                {
+                    hasBuildingMaterial = true;
+                }
+            }
+            
+            // 添加标记前缀
+            string prefix = "";
+            if (hasQuestItem && hasBuildingMaterial)
+                prefix = "[任务+建筑] ";
+            else if (hasQuestItem)
+                prefix = "[任务物品] ";
+            else if (hasBuildingMaterial)
+                prefix = "[建筑材料] ";
+            
+            return prefix + baseName;
         }
 
         /// <summary>
@@ -980,6 +1551,61 @@ namespace DuckovESP
                     toRemove.Add(box);
                     continue;
                 }
+
+                // 重新检查物品是否仍然符合当前的品质过滤条件
+                List<Item> currentItems = GetItemsFromInventory(data.inventory);
+                List<Item> filteredItems = new List<Item>();
+                
+                foreach (Item item in currentItems)
+                {
+                    if (item == null)
+                        continue;
+                    
+                    // 检查是否是未录入的钥匙
+                    bool isUnregisteredKey = IsUnregisteredKey(item);
+                    
+                    // 检查是否是任务物品或建筑材料
+                    bool isQuestOrBuilding = false;
+                    if (_questItemDetector != null)
+                    {
+                        isQuestOrBuilding = (_config.HighlightQuestItems && _questItemDetector.IsQuestRequiredItem(item)) ||
+                                           (_config.HighlightBuildingMaterials && _questItemDetector.IsBuildingRequiredItem(item));
+                    }
+                    
+                    // 如果是未录入的钥匙或任务/建筑材料，直接添加
+                    if (isUnregisteredKey || isQuestOrBuilding)
+                    {
+                        filteredItems.Add(item);
+                        continue;
+                    }
+                    
+                    // 否则应用品质过滤
+                    if (_minQualityFilter > 0)
+                    {
+                        ItemValueLevel level = ItemQualityUtil.GetItemValueLevel(item);
+                        if ((int)level >= _minQualityFilter)
+                        {
+                            filteredItems.Add(item);
+                        }
+                    }
+                    else
+                    {
+                        // 品质过滤为0时，显示所有物品
+                        filteredItems.Add(item);
+                    }
+                }
+                
+                // 如果没有符合条件的物品了，移除标记
+                if (filteredItems.Count == 0 && !_showLowValueItems)
+                {
+                    if (toRemove == null)
+                        toRemove = new List<InteractableLootbox>();
+                    toRemove.Add(box);
+                    continue;
+                }
+                
+                // 更新缓存的物品列表
+                data.items = filteredItems;
 
                 // 更新标记位置
                 data.marker.transform.position = box.transform.position;
