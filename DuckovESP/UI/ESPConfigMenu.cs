@@ -8,7 +8,7 @@ namespace DuckovESP
     public class ESPConfigMenu
     {
         private bool _showMenu = false;
-        private Rect _menuRect = new Rect(50, 50, 450, 600);
+        private Rect _menuRect = new Rect(50, 50, 520, 750); // 增加窗口大小容纳敌人ESP
         private Vector2 _scrollPosition = Vector2.zero;
         private GUIStyle _windowStyle;
         private GUIStyle _labelStyle;
@@ -42,7 +42,7 @@ namespace DuckovESP
                 999999, 
                 _menuRect, 
                 DrawMenuWindow, 
-                "DuckovESP 配置菜单", 
+                "DuckovESP 配置菜单 [⚠️ 包含作弊功能]", 
                 _windowStyle
             );
         }
@@ -74,7 +74,7 @@ namespace DuckovESP
         {
             GUILayout.BeginVertical();
             
-            _scrollPosition = GUILayout.BeginScrollView(_scrollPosition, GUILayout.Height(520));
+            _scrollPosition = GUILayout.BeginScrollView(_scrollPosition, GUILayout.Height(650)); // 增加高度以容纳敌人ESP选项
             
             // 标题
             GUILayout.Label("=== 3D ESP 设置 ===", _labelStyle);
@@ -145,6 +145,126 @@ namespace DuckovESP
             GUILayout.Label($"边框粗细: {_config.BorderThickness:F1}px", _labelStyle, GUILayout.Width(200));
             _config.BorderThickness = GUILayout.HorizontalSlider(_config.BorderThickness, 1f, 5f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
+            
+            GUILayout.Space(10);
+            GUILayout.Label("=== 🎯 敌人ESP设置 ===", _labelStyle);
+            GUILayout.Space(5);
+            
+            // 启用敌人ESP
+            _config.EnableEnemyESP = GUILayout.Toggle(_config.EnableEnemyESP, " 启用敌人ESP", _toggleStyle);
+            
+            // 最大距离
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"敌人ESP最大距离: {_config.MaxEnemyESPDistance:F0}m", _labelStyle, GUILayout.Width(200));
+            _config.MaxEnemyESPDistance = GUILayout.HorizontalSlider(_config.MaxEnemyESPDistance, 50f, 500f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
+            // 显示选项
+            _config.ShowEnemyHealth = GUILayout.Toggle(_config.ShowEnemyHealth, " 显示敌人血量", _toggleStyle);
+            _config.ShowEnemyWeapon = GUILayout.Toggle(_config.ShowEnemyWeapon, " 显示敌人武器", _toggleStyle);
+            _config.ShowEnemyValue = GUILayout.Toggle(_config.ShowEnemyValue, " 显示库存价值", _toggleStyle);
+            
+            // 连线设置
+            _config.EnableEnemyLines = GUILayout.Toggle(_config.EnableEnemyLines, " 启用敌人连线", _toggleStyle);
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"连线最大距离: {_config.MaxEnemyLineDistance:F0}m", _labelStyle, GUILayout.Width(200));
+            _config.MaxEnemyLineDistance = GUILayout.HorizontalSlider(_config.MaxEnemyLineDistance, 20f, 200f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"连线粗细: {_config.EnemyLineWidth:F1}px", _labelStyle, GUILayout.Width(200));
+            _config.EnemyLineWidth = GUILayout.HorizontalSlider(_config.EnemyLineWidth, 1f, 5f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
+            // 警报设置
+            GUILayout.Space(5);
+            _config.EnableHighValueAlert = GUILayout.Toggle(_config.EnableHighValueAlert, " 高价值目标警报", _toggleStyle);
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"高价值阈值: ¥{_config.HighValueThreshold:N0}", _labelStyle, GUILayout.Width(200));
+            _config.HighValueThreshold = (long)GUILayout.HorizontalSlider(_config.HighValueThreshold, 10000f, 200000f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
+            _config.EnableTraderAlert = GUILayout.Toggle(_config.EnableTraderAlert, " 商人检测警报", _toggleStyle);
+            
+            GUILayout.Space(5);
+            GUILayout.Label($"提示: 按 {_config.EnemyListToggleKey} 打开敌人列表窗口", _labelStyle);
+            
+            GUILayout.Space(10);
+            GUILayout.Label("=== 📦 任务物品&建筑材料 ===", _labelStyle);
+            GUILayout.Space(5);
+            
+            // 任务物品高亮
+            _config.HighlightQuestItems = GUILayout.Toggle(_config.HighlightQuestItems, " 高亮任务物品", _toggleStyle);
+            
+            // 建筑材料高亮
+            _config.HighlightBuildingMaterials = GUILayout.Toggle(_config.HighlightBuildingMaterials, " 高亮建筑材料", _toggleStyle);
+            
+            GUILayout.Space(5);
+            GUILayout.Label("说明: 自动标记当前任务所需物品和未建造建筑的材料", _labelStyle);
+            GUILayout.Label("使用特殊边框颜色（加粗）来突出显示", _labelStyle);
+            
+            GUILayout.Space(10);
+            GUILayout.Label("=== ⚠️ 自动瞄准设置（Aimbot）⚠️ ===", _labelStyle);
+            GUILayout.Space(5);
+            
+            // 启用自动瞄准
+            _config.EnableAimbot = GUILayout.Toggle(_config.EnableAimbot, " 启用自动瞄准", _toggleStyle);
+            
+            // 瞄准FOV
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"瞄准视野角度: {_config.AimbotFOV:F0}°", _labelStyle, GUILayout.Width(200));
+            _config.AimbotFOV = GUILayout.HorizontalSlider(_config.AimbotFOV, 5f, 90f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
+            // 平滑度
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"平滑度: {_config.AimbotSmoothness:F1}", _labelStyle, GUILayout.Width(200));
+            _config.AimbotSmoothness = GUILayout.HorizontalSlider(_config.AimbotSmoothness, 1f, 20f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
+            // 最大距离
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"最大瞄准距离: {_config.AimbotMaxDistance:F0}m", _labelStyle, GUILayout.Width(200));
+            _config.AimbotMaxDistance = GUILayout.HorizontalSlider(_config.AimbotMaxDistance, 50f, 500f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
+            // 瞄准选项
+            _config.AimbotAimAtHead = GUILayout.Toggle(_config.AimbotAimAtHead, " 瞄准头部（否则瞄准身体）", _toggleStyle);
+            _config.AimbotPredictMovement = GUILayout.Toggle(_config.AimbotPredictMovement, " 预测目标移动", _toggleStyle);
+            _config.AimbotIgnoreWalls = GUILayout.Toggle(_config.AimbotIgnoreWalls, " 忽略墙壁（穿墙瞄准）", _toggleStyle);
+            
+            GUILayout.Space(10);
+            GUILayout.Label("=== ⚠️ 自动扳机设置（Trigger Bot）⚠️ ===", _labelStyle);
+            GUILayout.Space(5);
+            
+            // 启用自动扳机
+            _config.EnableTriggerBot = GUILayout.Toggle(_config.EnableTriggerBot, " 启用自动扳机", _toggleStyle);
+            
+            // 扳机延迟
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"触发延迟: {_config.TriggerBotDelay:F3}秒", _labelStyle, GUILayout.Width(200));
+            _config.TriggerBotDelay = GUILayout.HorizontalSlider(_config.TriggerBotDelay, 0f, 0.5f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
+            // 扳机选项
+            _config.TriggerBotOnlyADS = GUILayout.Toggle(_config.TriggerBotOnlyADS, " 仅在瞄准时触发", _toggleStyle);
+            _config.TriggerBotTeamCheck = GUILayout.Toggle(_config.TriggerBotTeamCheck, " 检查队友（避免误伤）", _toggleStyle);
+            
+            GUILayout.Space(10);
+            GUILayout.Label("=== 🎮 作弊功能（快捷键）===", _labelStyle);
+            GUILayout.Space(5);
+            
+            GUILayout.Label($"• F7 = 无敌模式（保持满血）", _labelStyle);
+            GUILayout.Label($"• F8 = 一击必杀（需要自动瞄准启用）", _labelStyle);
+            GUILayout.Label($"• F9 = 速度提升（{2.5f}x 跑步速度）", _labelStyle);
+            GUILayout.Label($"• F10 = 无限负重（99万kg）", _labelStyle);
+            GUILayout.Label($"• F11 = 无限子弹（弹匣永不减少）", _labelStyle);
+            GUILayout.Label($"• F12 = 无限耐力（永不疲劳）", _labelStyle);
+            
+            GUILayout.Space(5);
+            GUILayout.Label("⚠️ 警告: 作弊功能会影响游戏平衡性", _labelStyle);
             
             GUILayout.EndScrollView();
             
