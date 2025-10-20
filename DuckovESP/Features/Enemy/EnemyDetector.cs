@@ -30,9 +30,9 @@ namespace DuckovESP
         private float _lastEnemyDataUpdate = 0f;
         
         // 更新间隔（优化性能）
-        private const float CHARACTER_CACHE_INTERVAL = 3f;  // 3秒更新一次角色列表
-        private const float AI_CONTROLLER_INTERVAL = 5f;    // 5秒更新一次AI控制器
-        private const float ENEMY_DATA_INTERVAL = 0.3f;     // 0.3秒更新一次敌人数据
+        private const float CHARACTER_CACHE_INTERVAL = 4f;  // 优化：从3秒改为4秒更新一次角色列表
+        private const float AI_CONTROLLER_INTERVAL = 6f;    // 优化：从5秒改为6秒更新一次AI控制器
+        private const float ENEMY_DATA_INTERVAL = 0.4f;     // 优化：从0.3秒改为0.4秒更新一次敌人数据
         
         public EnemyDetector(ESPConfig config)
         {

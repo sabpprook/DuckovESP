@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 
 namespace DuckovESP
@@ -15,17 +16,73 @@ namespace DuckovESP
         private Camera _mainCamera;
         private CharacterMainControl _player;
         private ItemAgent_Gun _trackedGun;
+        private bool _gunMethodsListed = false; // 防止重复打印
+
+        /// <summary>
+        /// 列出枪械对象的所有方法（用于调试）
+        /// </summary>
+        private void ListGunMethods()
+        {
+            if (_trackedGun == null || _gunMethodsListed) return;
+            
+            Debug.Log("=== ItemAgent_Gun 可用方法列表 ===");
+            var methods = _trackedGun.GetType().GetMethods(
+                System.Reflection.BindingFlags.Public | 
+                System.Reflection.BindingFlags.NonPublic | 
+                System.Reflection.BindingFlags.Instance);
+            
+            foreach (var method in methods)
+            {
+                // 过滤掉基类方法
+                if (method.DeclaringType == typeof(object)) continue;
+                
+                var parameters = method.GetParameters();
+                var paramString = string.Join(", ", parameters.Select(p => $"{p.ParameterType.Name} {p.Name}"));
+                Debug.Log($"  {method.ReturnType.Name} {method.Name}({paramString})");
+            }
+            Debug.Log("================================");
+            
+            _gunMethodsListed = true;
+        }
         private CheatSystem _cheatSystem; // 作弊系统引用
         
-        // 子弹重定向追踪
-        private readonly HashSet<int> _retargetedProjectiles = new HashSet<int>();
+        // 反射字段定义（参考 Mod_Aimbot）
+        private static readonly FieldInfo GunProjectileField = 
+            typeof(ItemAgent_Gun).GetField("projInst", BindingFlags.Instance | BindingFlags.NonPublic);
         
-        // 自动扳机延迟计时器
+        private static readonly FieldInfo ProjectileTraveledDistanceField = 
+            typeof(Projectile).GetField("traveledDistance", BindingFlags.Instance | BindingFlags.NonPublic);
+        
+        // 关键：Projectile 的私有字段 direction 和 velocity（参考 Mod_Aimbot）
+        private static readonly FieldInfo ProjectileDirectionField = 
+            typeof(Projectile).GetField("direction", BindingFlags.Instance | BindingFlags.NonPublic);
+        
+        private static readonly FieldInfo ProjectileVelocityField = 
+            typeof(Projectile).GetField("velocity", BindingFlags.Instance | BindingFlags.NonPublic);
+        
+        // 子弹重定向追踪（改为追踪 Projectile 实例而非 ID）
+        private readonly HashSet<Projectile> _retargetedProjectiles = new HashSet<Projectile>();
+        
+        // 自动扳机状态跟踪
         private float _triggerDelayTimer = 0f;
         private bool _targetInSight = false;
+        private bool _lastTriggerState = false;
+        private float _continuousFireTimer = 0f;
+        private const float FIRE_RATE_INTERVAL = 0.1f; // 最小射击间隔（秒）
+        private bool _triggerBotLoggedOnce = false; // 防止重复日志
+        private AutoAimCandidate _lastBestTarget; // 缓存最佳目标（供自动扳机使用）
         
         // 障碍物层遮罩（用于LineOfSight检测）
         private static int ObstacleLayerMaskValue = -1;
+        
+        // ===== 性能优化：缓存系统 =====
+        private DamageReceiver[] _damageReceiverCache = new DamageReceiver[0];
+        private float _lastReceiverCacheUpdate = 0f;
+        private const float RECEIVER_CACHE_INTERVAL = 1.5f; // 1.5秒更新一次目标列表
+        
+        // 组件缓存（避免重复 GetComponent 调用）
+        private readonly Dictionary<DamageReceiver, Collider> _colliderCache = new Dictionary<DamageReceiver, Collider>();
+        private readonly Dictionary<DamageReceiver, HeadCollider> _headColliderCache = new Dictionary<DamageReceiver, HeadCollider>();
         
         public AimbotSystem(ESPConfig config)
         {
@@ -41,13 +98,38 @@ namespace DuckovESP
                     int halfObstacleLayer = LayerMask.NameToLayer("HalfObsticle");
                     
                     ObstacleLayerMaskValue = 0;
-                    if (wallLayer >= 0) ObstacleLayerMaskValue |= (1 << wallLayer);
-                    if (groundLayer >= 0) ObstacleLayerMaskValue |= (1 << groundLayer);
-                    if (halfObstacleLayer >= 0) ObstacleLayerMaskValue |= (1 << halfObstacleLayer);
+                    if (wallLayer >= 0)
+                    {
+                        ObstacleLayerMaskValue |= (1 << wallLayer);
+                        Debug.Log($"[Aimbot] 添加 Wall 层 (Layer {wallLayer})");
+                    }
+                    if (groundLayer >= 0)
+                    {
+                        ObstacleLayerMaskValue |= (1 << groundLayer);
+                        Debug.Log($"[Aimbot] 添加 Ground 层 (Layer {groundLayer})");
+                    }
+                    if (halfObstacleLayer >= 0)
+                    {
+                        ObstacleLayerMaskValue |= (1 << halfObstacleLayer);
+                        Debug.Log($"[Aimbot] 添加 HalfObsticle 层 (Layer {halfObstacleLayer})");
+                    }
+                    
+                    if (ObstacleLayerMaskValue == 0)
+                    {
+                        Debug.LogWarning("[Aimbot] ⚠️ 没有找到任何障碍物层！使用默认层遮罩");
+                        // 使用默认层遮罩（除了 IgnoreRaycast 之外的所有层）
+                        ObstacleLayerMaskValue = ~(1 << LayerMask.NameToLayer("Ignore Raycast"));
+                    }
+                    else
+                    {
+                        Debug.Log($"[Aimbot] 障碍物层遮罩初始化完成: 0x{ObstacleLayerMaskValue:X}");
+                    }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    ObstacleLayerMaskValue = 0;
+                    Debug.LogError($"[Aimbot] 初始化障碍物层失败: {ex.Message}");
+                    // 使用默认层遮罩
+                    ObstacleLayerMaskValue = ~(1 << LayerMask.NameToLayer("Ignore Raycast"));
                 }
             }
         }
@@ -84,10 +166,31 @@ namespace DuckovESP
             // 追踪当前持有的枪械
             UpdateTrackedGun();
             
-            // 自动扳机
-            if (_config.EnableTriggerBot)
+            // 查找最佳目标（自动瞄准和自动扳机共享）
+            _lastBestTarget = (_config.EnableAimbot || _config.EnableTriggerBot) ? FindBestTarget() : default(AutoAimCandidate);
+            
+            // 自动扳机（必须在自动瞄准启用时才工作）
+            if (_config.EnableTriggerBot && _config.EnableAimbot)
             {
+                // 检查是否有武器
+                if (_trackedGun == null && !_triggerBotLoggedOnce)
+                {
+                    Debug.Log("[TriggerBot] 警告: 没有持有武器");
+                }
+                
                 PerformTriggerBot();
+            }
+            else
+            {
+                // 禁用时确保释放扳机
+                if (_lastTriggerState)
+                {
+                    ReleaseTrigger();
+                }
+                
+                // 重置状态
+                _targetInSight = false;
+                _triggerDelayTimer = 0f;
             }
             
             // 清理已销毁的子弹
@@ -115,7 +218,58 @@ namespace DuckovESP
                 if (_trackedGun != null)
                 {
                     _trackedGun.OnShootEvent += OnGunShoot;
+                    
+                    // 列出枪械方法用于调试
+                    ListGunMethods();
                 }
+            }
+        }
+        
+        /// <summary>
+        /// 尝试通过反射获取刚发射的子弹实例（快速可靠）
+        /// </summary>
+        private Projectile TryGetImmediateProjectile(ItemAgent_Gun gun)
+        {
+            if (gun == null)
+                return null;
+            
+            if (GunProjectileField == null)
+                return null;
+            
+            try
+            {
+                // 使用反射获取私有字段 projInst
+                Projectile proj = GunProjectileField.GetValue(gun) as Projectile;
+                
+                if (proj == null || proj.gameObject == null)
+                    return null;
+                
+                // 验证子弹是否是玩家发射的
+                if (proj.context.fromCharacter != _player)
+                    return null;
+                
+                // 使用反射检查子弹的飞行距离（只重定向刚发射的子弹）
+                if (ProjectileTraveledDistanceField != null)
+                {
+                    object distanceValue = ProjectileTraveledDistanceField.GetValue(proj);
+                    if (distanceValue is float traveledDistance)
+                    {
+                        // 只处理飞行距离小于 0.06 米的子弹（参考 Mod_Aimbot）
+                        if (traveledDistance > 0.06f)
+                            return null;
+                    }
+                }
+                
+                // 检查是否已经重定向过（避免重复处理）
+                if (_retargetedProjectiles.Contains(proj))
+                    return null;
+                
+                return proj;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[AimbotSystem] 反射获取子弹失败: {ex.Message}");
+                return null;
             }
         }
         
@@ -130,123 +284,341 @@ namespace DuckovESP
             if (_trackedGun == null)
                 return;
             
+            // 清理已失效的子弹记录（参考 Mod_Aimbot 的 CleanupRetargetedProjectiles）
+            CleanupRetargetedProjectiles();
+            
             // 查找最佳目标
             AutoAimCandidate candidate = FindBestTarget();
             if (candidate.Receiver == null)
-            {
-                Debug.Log("DuckovESP Aimbot: 未找到有效目标");
                 return;
-            }
-            
-            Debug.Log($"DuckovESP Aimbot: 锁定目标 {candidate.Receiver.name}, 屏幕距离 {candidate.ScreenDistance:F1}px, 实际距离 {candidate.RayDistance:F1}m");
             
             // 获取枪口位置
             Vector3 muzzlePosition = _trackedGun.muzzle != null 
                 ? _trackedGun.muzzle.position 
                 : _trackedGun.transform.position;
             
-            // 重定向子弹
-            RetargetProjectilesToTarget(muzzlePosition, candidate.AimPoint);
+            // TriggerBot 模式下，自动使用子弹传送（绕过墙体检测问题）
+            bool useTeleportMode = _config.EnableTriggerBot;
+            
+            if (useTeleportMode)
+            {
+                // 传送模式：子弹直接生成在目标附近（绕过墙体）
+                TeleportProjectilesToTarget(candidate.Receiver, candidate.AimPoint);
+            }
+            else
+            {
+                // 正常模式：重定向子弹轨迹
+                RetargetProjectilesToTarget(muzzlePosition, candidate.AimPoint);
+            }
         }
         
         /// <summary>
-        /// 重定向所有未处理的子弹到目标
+        /// 重定向所有未处理的子弹到目标（优先使用反射，扫描作为后备）
         /// </summary>
         private void RetargetProjectilesToTarget(Vector3 muzzlePosition, Vector3 targetPoint)
         {
             try
             {
-                Projectile[] allProjectiles = UnityEngine.Object.FindObjectsOfType<Projectile>();
-                if (allProjectiles == null || allProjectiles.Length == 0)
-                {
-                    Debug.Log("DuckovESP Aimbot: 场景中没有子弹");
-                    return;
-                }
-                
                 Vector3 direction = (targetPoint - muzzlePosition).normalized;
                 int retargetedCount = 0;
+                int requiredCount = Mathf.Max(1, _trackedGun != null ? _trackedGun.ShotCount : 1);
                 
-                // 只重定向玩家刚发射的子弹
-                foreach (Projectile projectile in allProjectiles.Where(p => p != null && p.context.fromCharacter == _player)
-                                                                  .OrderBy(p => GetProjectileTraveledDistance(p)))
+                // 方法1: 优先使用反射直接获取刚发射的子弹（快速可靠）
+                if (_trackedGun != null)
                 {
-                    // 检查是否已经处理过
-                    int projectileId = projectile.GetInstanceID();
-                    if (_retargetedProjectiles.Contains(projectileId))
-                        continue;
-                    
-                    // 只重定向刚发射的子弹（飞行距离 < 0.06米）
-                    float traveledDistance = GetProjectileTraveledDistance(projectile);
-                    if (traveledDistance > 0.06f)
-                        continue;
-                    
-                    // 重定向子弹
-                    if (RetargetProjectile(projectile, direction, targetPoint))
+                    Projectile immediateProj = TryGetImmediateProjectile(_trackedGun);
+                    if (immediateProj != null)
                     {
-                        _retargetedProjectiles.Add(projectileId);
-                        retargetedCount++;
-                        
-                        // 限制处理数量（根据散弹数）
-                        if (retargetedCount >= Mathf.Max(1, _trackedGun.ShotCount))
-                            break;
+                        if (RetargetProjectile(immediateProj, direction, targetPoint))
+                        {
+                            _retargetedProjectiles.Add(immediateProj);
+                            retargetedCount++;
+                        }
                     }
                 }
                 
-                if (retargetedCount > 0)
+                // 方法2: 如果反射失败或散弹枪需要处理多个子弹,使用扫描作为后备
+                if (retargetedCount < requiredCount)
                 {
-                    Debug.Log($"DuckovESP Aimbot: 成功重定向 {retargetedCount} 枚子弹到目标 {targetPoint}");
+                    Projectile[] allProjectiles = UnityEngine.Object.FindObjectsOfType<Projectile>();
+                    
+                    if (allProjectiles != null && allProjectiles.Length > 0)
+                    {
+                        int playerProjectiles = 0;
+                        int retargetedAlready = 0;
+                        int tooFar = 0;
+                        
+                        // 只重定向玩家刚发射的子弹
+                        foreach (Projectile projectile in allProjectiles
+                            .Where(p => p != null && p.context.fromCharacter == _player)
+                            .OrderBy(p => GetProjectileTraveledDistance(p)))
+                        {
+                            playerProjectiles++;
+                            
+                            // 检查是否已经处理过
+                            if (_retargetedProjectiles.Contains(projectile))
+                            {
+                                retargetedAlready++;
+                                continue;
+                            }
+                            
+                            // 只重定向刚发射的子弹（飞行距离 < 0.06米，参考 Mod_Aimbot）
+                            float traveledDistance = GetProjectileTraveledDistance(projectile);
+                            if (traveledDistance > 0.06f)
+                            {
+                                tooFar++;
+                                continue;
+                            }
+                            
+                            // 重定向子弹
+                            if (RetargetProjectile(projectile, direction, targetPoint))
+                            {
+                                _retargetedProjectiles.Add(projectile);
+                                retargetedCount++;
+                                
+                                // 限制处理数量
+                                if (retargetedCount >= requiredCount)
+                                    break;
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"DuckovESP Aimbot: 重定向子弹时出错 - {ex.Message}");
+                Debug.LogError($"[Aimbot] 重定向子弹时出错: {ex.Message}");
             }
         }
         
         /// <summary>
-        /// 重定向单个子弹
+        /// 重定向单个子弹（完全照搬 Mod_Aimbot 的实现）
         /// </summary>
         private bool RetargetProjectile(Projectile projectile, Vector3 direction, Vector3 targetPoint)
         {
+            if (projectile == null)
+                return false;
+            
+            if (direction.sqrMagnitude < 0.0001f)
+                return false;
+            
+            direction.Normalize();
+            
             try
             {
-                // 设置子弹方向
+                // 1. 设置 context.direction
                 projectile.context.direction = direction;
-                projectile.transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
                 
-                // 调整检测起点，避免从枪口后方开始检测
+                // 2. 设置 firstFrameCheckStartPoint
                 projectile.context.firstFrameCheckStartPoint = projectile.transform.position - direction * 0.1f;
                 
-                // 确保射程足够到达目标
+                // 3. 确保射程足够
                 float distanceToTarget = Vector3.Distance(projectile.transform.position, targetPoint) + 2f;
                 if (projectile.context.distance < distanceToTarget)
                 {
                     projectile.context.distance = distanceToTarget;
                 }
                 
-                // 强制暴击（如果配置了瞄准头部）
+                // 4. 如果瞄准头部，设置暴击
                 if (_config.AimbotAimAtHead)
                 {
                     projectile.context.critRate = 1f;
+                    projectile.context.ignoreHalfObsticle = true;
                 }
                 
-                // 一击必杀：如果启用，则大幅提升伤害
-                if (_cheatSystem != null && _cheatSystem.IsOneHitKillEnabled())
+                // 5. 【关键】使用反射设置私有字段 direction（参考 Mod_Aimbot）
+                if (ProjectileDirectionField != null)
                 {
-                    projectile.context.damage *= 999f; // 伤害提升999倍
-                    projectile.context.critRate = 1f; // 强制暴击
-                    projectile.context.critDamageFactor = 10f; // 暴击伤害10倍
+                    ProjectileDirectionField.SetValue(projectile, direction);
                 }
                 
-                // 忽略半掩体
-                projectile.context.ignoreHalfObsticle = true;
+                // 6. 【关键】使用反射设置私有字段 velocity（参考 Mod_Aimbot）
+                if (ProjectileVelocityField != null)
+                {
+                    Vector3 velocity = direction * projectile.context.speed;
+                    ProjectileVelocityField.SetValue(projectile, velocity);
+                }
+                
+                // 7. 设置旋转
+                projectile.transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
                 
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"DuckovESP Aimbot: 重定向单个子弹失败 - {ex.Message}");
+                Debug.LogError($"[Aimbot] 重定向单个子弹失败: {ex.Message}\n{ex.StackTrace}");
                 return false;
+            }
+        }
+        
+        /// <summary>
+        /// 传送模式：将子弹直接传送到目标附近（绕过墙体检测）
+        /// TriggerBot 专用，用于解决墙体检测问题
+        /// </summary>
+        private void TeleportProjectilesToTarget(DamageReceiver target, Vector3 targetPoint)
+        {
+            try
+            {
+                int teleportedCount = 0;
+                int requiredCount = Mathf.Max(1, _trackedGun != null ? _trackedGun.ShotCount : 1);
+                
+                // 方法1: 优先使用反射直接获取刚发射的子弹
+                if (_trackedGun != null)
+                {
+                    Projectile immediateProj = TryGetImmediateProjectile(_trackedGun);
+                    if (immediateProj != null)
+                    {
+                        if (TeleportSingleProjectile(immediateProj, target, targetPoint))
+                        {
+                            _retargetedProjectiles.Add(immediateProj);
+                            teleportedCount++;
+                        }
+                    }
+                }
+                
+                // 方法2: 如果反射失败，扫描场景中的子弹（后备方案）
+                if (teleportedCount < requiredCount)
+                {
+                    Projectile[] allProjectiles = UnityEngine.Object.FindObjectsOfType<Projectile>();
+                    foreach (Projectile projectile in allProjectiles)
+                    {
+                        if (projectile == null || _retargetedProjectiles.Contains(projectile))
+                            continue;
+                        
+                        // 检查是否是玩家的子弹（使用 fromCharacter 字段）
+                        if (projectile.context.fromCharacter == _player)
+                        {
+                            // 检查 traveledDistance（只传送刚发射的子弹）
+                            float traveledDistance = GetProjectileTraveledDistance(projectile);
+                            if (traveledDistance > 0.2f) 
+                                continue;
+                            
+                            if (TeleportSingleProjectile(projectile, target, targetPoint))
+                            {
+                                _retargetedProjectiles.Add(projectile);
+                                teleportedCount++;
+                                
+                                if (teleportedCount >= requiredCount)
+                                    break;
+                            }
+                        }
+                    }
+                }
+                
+                if (teleportedCount > 0)
+                {
+                    Debug.Log($"[Aimbot] TriggerBot传送模式: 已传送 {teleportedCount} 发子弹到目标附近");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Aimbot] 传送子弹时出错: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 传送单个子弹到目标附近
+        /// </summary>
+        private bool TeleportSingleProjectile(Projectile projectile, DamageReceiver target, Vector3 targetPoint)
+        {
+            if (projectile == null || target == null)
+                return false;
+            
+            try
+            {
+                // 计算传送位置：目标前方1-2米，随机偏移避免过于明显
+                Vector3 toTarget = (targetPoint - projectile.transform.position).normalized;
+                float randomOffset = UnityEngine.Random.Range(1f, 2.5f);
+                Vector3 teleportPosition = targetPoint - toTarget * randomOffset;
+                
+                // 添加随机偏移（让子弹看起来更自然）
+                teleportPosition += new Vector3(
+                    UnityEngine.Random.Range(-0.3f, 0.3f),
+                    UnityEngine.Random.Range(-0.2f, 0.2f),
+                    UnityEngine.Random.Range(-0.3f, 0.3f)
+                );
+                
+                // 传送子弹位置
+                projectile.transform.position = teleportPosition;
+                
+                // 设置子弹方向（指向目标）
+                Vector3 direction = (targetPoint - teleportPosition).normalized;
+                
+                // 1. 设置 context.direction
+                projectile.context.direction = direction;
+                
+                // 2. 设置 firstFrameCheckStartPoint
+                projectile.context.firstFrameCheckStartPoint = teleportPosition - direction * 0.1f;
+                
+                // 3. 确保射程足够（只需要打到目标的距离）
+                float distanceToTarget = Vector3.Distance(teleportPosition, targetPoint) + 1f;
+                projectile.context.distance = distanceToTarget;
+                
+                // 4. 如果瞄准头部，设置暴击
+                if (_config.AimbotAimAtHead)
+                {
+                    projectile.context.critRate = 1f;
+                    projectile.context.ignoreHalfObsticle = true;
+                }
+                
+                // 5. 使用反射设置私有字段 direction
+                if (ProjectileDirectionField != null)
+                {
+                    ProjectileDirectionField.SetValue(projectile, direction);
+                }
+                
+                // 6. 使用反射设置私有字段 velocity
+                if (ProjectileVelocityField != null)
+                {
+                    Vector3 velocity = direction * projectile.context.speed;
+                    ProjectileVelocityField.SetValue(projectile, velocity);
+                }
+                
+                // 7. 设置旋转
+                projectile.transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+                
+                // 8. 重置已飞行距离（让子弹从新位置开始）
+                if (ProjectileTraveledDistanceField != null)
+                {
+                    ProjectileTraveledDistanceField.SetValue(projectile, 0f);
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Aimbot] 传送单个子弹失败: {ex.Message}");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// 清理已失效的子弹记录（参考 Mod_Aimbot）
+        /// </summary>
+        private void CleanupRetargetedProjectiles()
+        {
+            if (_retargetedProjectiles.Count == 0)
+                return;
+            
+            try
+            {
+                // 获取当前场景中所有子弹的实例ID
+                HashSet<Projectile> activeProjectiles = new HashSet<Projectile>();
+                Projectile[] allProjectiles = UnityEngine.Object.FindObjectsOfType<Projectile>();
+                if (allProjectiles != null)
+                {
+                    foreach (Projectile proj in allProjectiles)
+                    {
+                        if (proj != null)
+                            activeProjectiles.Add(proj);
+                    }
+                }
+                
+                // 移除已销毁的子弹
+                _retargetedProjectiles.RemoveWhere(p => p == null || !activeProjectiles.Contains(p));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Aimbot] 清理子弹记录失败: {ex.Message}");
             }
         }
         
@@ -274,40 +646,25 @@ namespace DuckovESP
         }
         
         /// <summary>
-        /// 清理已销毁的子弹记录
-        /// </summary>
-        private void CleanupRetargetedProjectiles()
-        {
-            if (_retargetedProjectiles.Count == 0)
-                return;
-            
-            try
-            {
-                // 获取所有活跃子弹的ID
-                HashSet<int> activeIds = new HashSet<int>();
-                foreach (Projectile projectile in UnityEngine.Object.FindObjectsOfType<Projectile>())
-                {
-                    if (projectile != null)
-                    {
-                        activeIds.Add(projectile.GetInstanceID());
-                    }
-                }
-                
-                // 移除已销毁的子弹记录
-                _retargetedProjectiles.RemoveWhere(id => !activeIds.Contains(id));
-            }
-            catch { }
-        }
-        
-        /// <summary>
         /// 查找最佳目标（使用屏幕半径圆形检测）
+        /// 性能优化：使用缓存的 DamageReceiver 列表，减少 FindObjectsOfType 调用
         /// </summary>
         private AutoAimCandidate FindBestTarget()
         {
             try
             {
-                // 获取所有伤害接收器（DamageReceiver）
-                DamageReceiver[] allReceivers = UnityEngine.Object.FindObjectsOfType<DamageReceiver>();
+                // 性能优化：使用缓存的接收器列表
+                float currentTime = Time.time;
+                if (currentTime - _lastReceiverCacheUpdate > RECEIVER_CACHE_INTERVAL)
+                {
+                    _damageReceiverCache = UnityEngine.Object.FindObjectsOfType<DamageReceiver>();
+                    _lastReceiverCacheUpdate = currentTime;
+                    
+                    // 清理已销毁对象的缓存
+                    ClearInvalidCaches();
+                }
+                
+                DamageReceiver[] allReceivers = _damageReceiverCache;
                 
                 if (allReceivers == null || allReceivers.Length == 0)
                 {
@@ -333,6 +690,10 @@ namespace DuckovESP
                 // 最大射程
                 float maxRange = _trackedGun != null ? _trackedGun.BulletDistance : _config.AimbotMaxDistance;
                 
+                int validCount = 0;
+                int distanceFailCount = 0;
+                int screenFailCount = 0;
+                
                 foreach (DamageReceiver receiver in allReceivers)
                 {
                     // 基础有效性检查
@@ -340,10 +701,15 @@ namespace DuckovESP
                     if (!IsCandidateValid(receiver, out aimPoint))
                         continue;
                     
+                    validCount++;
+                    
                     // 距离检查
                     float distance = Vector3.Distance(muzzlePosition, aimPoint);
                     if (distance > maxRange)
+                    {
+                        distanceFailCount++;
                         continue;
+                    }
                     
                     // 计算从摄像机到目标的方向
                     Vector3 directionToTarget = aimPoint - cameraOrigin;
@@ -351,27 +717,33 @@ namespace DuckovESP
                     
                     // 目标在摄像机后面
                     if (rayDistance <= 0)
+                    {
+                        screenFailCount++;
                         continue;
+                    }
                     
                     // 转换为屏幕坐标
                     Vector3 screenPoint = _mainCamera.WorldToScreenPoint(aimPoint);
                     
                     // 屏幕外或摄像机后面
                     if (screenPoint.z <= 0)
+                    {
+                        screenFailCount++;
                         continue;
+                    }
                     
-                    // 计算屏幕距离
+                    // 计算屏幕距离（仅用于优先级排序，不做限制）
                     Vector2 screenPos = new Vector2(screenPoint.x, screenPoint.y);
                     float screenDistance = Vector2.Distance(screenCenter, screenPos);
                     
-                    // 超出屏幕半径
-                    if (screenDistance > _config.AimbotFOV)
-                        continue;
+                    // 移除 FOV 限制 - 游戏只在靠近时刷怪，不需要限制屏幕范围
+                    // if (screenDistance > _config.AimbotFOV) continue;
                     
                     // 评估候选目标
                     EvaluateCandidate(receiver, aimPoint, muzzlePosition, cameraForward, 
                                      screenDistance, rayDistance, ref bestCandidate, ref bestScore);
                 }
+                
                 
                 return bestCandidate;
             }
@@ -452,10 +824,15 @@ namespace DuckovESP
             
             // 射线检测
             RaycastHit hit;
-            if (!Physics.Raycast(origin, direction, out hit, distance - 0.2f, ObstacleLayerMaskValue, QueryTriggerInteraction.Ignore))
+            bool hitSomething = Physics.Raycast(origin, direction, out hit, distance - 0.2f, ObstacleLayerMaskValue, QueryTriggerInteraction.Ignore);
+            
+            if (!hitSomething)
             {
                 return true; // 没有障碍物
             }
+            
+            // 记录碰撞信息（用于调试）
+            obstructionDistance = hit.distance;
             
             // 检查碰撞物是否就是目标本身
             DamageReceiver hitReceiver = hit.collider.GetComponentInParent<DamageReceiver>();
@@ -463,6 +840,9 @@ namespace DuckovESP
             {
                 return true; // 直接命中目标
             }
+            
+            // 被障碍物遮挡
+            // Debug.Log($"[Aimbot] 目标被遮挡: {hit.collider.name} (Layer: {LayerMask.LayerToName(hit.collider.gameObject.layer)}, 距离: {hit.distance:F2}m)");
             
             obstructionDistance = hit.distance;
             return false; // 被障碍物遮挡
@@ -476,30 +856,61 @@ namespace DuckovESP
             aimPoint = Vector3.zero;
             
             if (receiver == null || !receiver.enabled)
+            {
                 return false;
+            }
             
             if (receiver.gameObject == null || !receiver.gameObject.activeInHierarchy)
+            {
                 return false;
+            }
             
             // 已死亡
             if (receiver.IsDead)
+            {
                 return false;
+            }
             
             // 是主角自己
             if (receiver.IsMainCharacter)
+            {
                 return false;
+            }
             
             // 没有生命值
             if (!ReceiverHasHealth(receiver))
+            {
                 return false;
+            }
             
             // 队伍检查
-            if (!Team.IsEnemy(_player.Team, receiver.Team))
+            bool isEnemy = Team.IsEnemy(_player.Team, receiver.Team);
+            
+            // 测试模式：忽略队伍检查（用于测试墙体检测）
+            if (_config.AimbotIgnoreTeamCheck)
+            {
+                // 跳过队伍检查，但不攻击自己
+                if (receiver.IsMainCharacter)
+                {
+                    return false;
+                }
+                // 继续执行后续检查
+            }
+            else if (!isEnemy)
+            {
+                // 记录第一个非敌人的情况用于调试
+                if (UnityEngine.Random.value < 0.01f) // 1%概率记录，避免刷屏
+                {
+                    Debug.Log($"[Aimbot] 目标 {receiver.name} 队伍检查失败: 玩家队伍={_player.Team}, 目标队伍={receiver.Team}");
+                }
                 return false;
+            }
             
             // 中立单位
             if (receiver.Team == Teams.all)
+            {
                 return false;
+            }
             
             // 获取瞄准点
             aimPoint = GetReceiverAimPoint(receiver);
@@ -520,6 +931,7 @@ namespace DuckovESP
         
         /// <summary>
         /// 获取 DamageReceiver 的瞄准点
+        /// 性能优化：缓存 Collider 和 HeadCollider
         /// </summary>
         private Vector3 GetReceiverAimPoint(DamageReceiver receiver)
         {
@@ -541,8 +953,16 @@ namespace DuckovESP
                     }
                 }
                 
-                // 尝试获取碰撞体中心
-                Collider collider = receiver.GetComponent<Collider>();
+                // 性能优化：使用缓存的 Collider
+                if (!_colliderCache.TryGetValue(receiver, out Collider collider))
+                {
+                    collider = receiver.GetComponent<Collider>();
+                    if (collider != null)
+                    {
+                        _colliderCache[receiver] = collider;
+                    }
+                }
+                
                 if (collider != null)
                 {
                     return collider.bounds.center;
@@ -559,13 +979,19 @@ namespace DuckovESP
         
         /// <summary>
         /// 尝试获取头部Transform
+        /// 性能优化：缓存 HeadCollider
         /// </summary>
-        private static Transform TryGetHeadTransform(DamageReceiver receiver)
+        private Transform TryGetHeadTransform(DamageReceiver receiver)
         {
             try
             {
-                // 尝试查找 HeadCollider 组件
-                HeadCollider headCollider = receiver.GetComponentInChildren<HeadCollider>();
+                // 性能优化：使用缓存的 HeadCollider
+                if (!_headColliderCache.TryGetValue(receiver, out HeadCollider headCollider))
+                {
+                    headCollider = receiver.GetComponentInChildren<HeadCollider>();
+                    _headColliderCache[receiver] = headCollider; // 即使为 null 也缓存，避免重复查找
+                }
+                
                 if (headCollider != null)
                 {
                     return headCollider.transform;
@@ -605,27 +1031,73 @@ namespace DuckovESP
         }
         
         /// <summary>
-        /// 执行自动扳机
+        /// 执行自动扳机（使用自动瞄准的目标检测）
         /// </summary>
         private void PerformTriggerBot()
         {
-            // 更新延迟计时器
-            if (_triggerDelayTimer > 0)
+            // 首次启动时记录
+            if (!_triggerBotLoggedOnce)
             {
-                _triggerDelayTimer -= Time.deltaTime;
+                Debug.Log($"[TriggerBot] 已启动 - 仅瞄准触发: {_config.TriggerBotOnlyADS}, 延迟: {_config.TriggerBotDelay}s");
+                Debug.Log($"[TriggerBot] 使用自动瞄准的目标检测系统");
+                _triggerBotLoggedOnce = true;
             }
             
-            // 检查是否仅在瞄准时触发
+            // 检查是否仅在瞄准时触发（检测右键是否按下）
             if (_config.TriggerBotOnlyADS)
             {
-                // TODO: 检查玩家是否在瞄准状态（ADS）
-                // 这需要访问游戏的瞄准状态，暂时跳过这个检查
+                bool isAiming = Input.GetMouseButton(1); // 右键 = 瞄准
+                if (!isAiming)
+                {
+                    // 不在瞄准状态，确保扳机释放
+                    if (_lastTriggerState)
+                    {
+                        ReleaseTrigger();
+                    }
+                    _targetInSight = false;
+                    _triggerDelayTimer = 0f;
+                    return;
+                }
             }
             
-            // 检查准星下是否有敌人
-            DamageReceiver target = GetTargetUnderCrosshair();
+            // 使用自动瞄准找到的最佳目标
+            bool currentTargetInSight = (_lastBestTarget.Receiver != null);
             
-            bool currentTargetInSight = (target != null);
+            // 详细调试：输出目标状态
+            if (UnityEngine.Random.value < 0.05f) // 5% 概率输出，避免刷屏
+            {
+                if (_lastBestTarget.Receiver != null)
+                {
+                    Debug.Log($"[TriggerBot] 当前目标: {_lastBestTarget.Receiver.name}, RequiresPenetration={_lastBestTarget.RequiresPenetration}, IgnoreWalls={_config.AimbotIgnoreWalls}");
+                }
+                else
+                {
+                    Debug.Log($"[TriggerBot] 无目标 (_lastBestTarget.Receiver == null)");
+                }
+            }
+            
+            // TriggerBot 遵守 AimbotIgnoreWalls 设置
+            // 如果目标被墙遮挡且不允许穿墙，则不触发
+            if (currentTargetInSight && _lastBestTarget.RequiresPenetration && !_config.AimbotIgnoreWalls)
+            {
+                Debug.Log($"[TriggerBot] 目标被墙遮挡，不触发 (RequiresPenetration={_lastBestTarget.RequiresPenetration}, IgnoreWalls={_config.AimbotIgnoreWalls})");
+                currentTargetInSight = false;
+            }
+            
+            // 额外检查：即使配置允许穿墙，TriggerBot 默认也不穿墙射击（可选）
+            // 如果你想让 TriggerBot 也能穿墙，注释掉下面这段
+            if (currentTargetInSight && _lastBestTarget.RequiresPenetration)
+            {
+                Debug.Log($"[TriggerBot] 目标被墙遮挡，TriggerBot 不穿墙射击");
+                currentTargetInSight = false;
+            }
+            
+            // 调试输出
+            if (currentTargetInSight && !_targetInSight)
+            {
+                string wallStatus = _lastBestTarget.RequiresPenetration ? " [穿墙]" : " [无遮挡]";
+                Debug.Log($"[TriggerBot] 检测到目标: {_lastBestTarget.Receiver.name}, 距离: {_lastBestTarget.RayDistance:F1}m{wallStatus}");
+            }
             
             // 检测到新目标
             if (currentTargetInSight && !_targetInSight)
@@ -638,22 +1110,41 @@ namespace DuckovESP
             {
                 _targetInSight = false;
                 _triggerDelayTimer = 0f;
+                Debug.Log("[TriggerBot] 目标消失");
             }
             
-            // 延迟结束，执行射击
+            // 更新延迟计时器
+            if (_triggerDelayTimer > 0)
+            {
+                _triggerDelayTimer -= Time.deltaTime;
+            }
+            
+            // 延迟结束，执行射击（改为单发而非持续按住）
             if (_targetInSight && _triggerDelayTimer <= 0)
             {
-                TryShoot();
+                // 单发射击模式：每间隔触发一次
+                TrySingleShot();
+            }
+            else
+            {
+                // 没有目标或在延迟中时，确保扳机释放
+                if (_lastTriggerState)
+                {
+                    ReleaseTrigger();
+                }
             }
         }
         
         /// <summary>
-        /// 获取准星下的目标
+        /// 获取准星下的目标（已弃用，自动扳机现在使用自动瞄准的目标检测）
         /// </summary>
         private DamageReceiver GetTargetUnderCrosshair()
         {
             try
             {
+                if (_mainCamera == null || _trackedGun == null)
+                    return null;
+                
                 // 从屏幕中心发射射线
                 Ray ray = _mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
                 RaycastHit hit;
@@ -680,7 +1171,7 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogError($"DuckovESP TriggerBot: 检测目标时出错 - {ex.Message}");
+                Debug.LogError($"[TriggerBot] 检测目标时出错 - {ex.Message}");
                 return null;
             }
         }
@@ -708,6 +1199,182 @@ namespace DuckovESP
             catch (Exception ex)
             {
                 Debug.LogError($"DuckovESP TriggerBot: 射击时出错 - {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+        
+        /// <summary>
+        /// 单发射击（避免持续占用扳机）
+        /// </summary>
+        private void TrySingleShot()
+        {
+            if (_trackedGun == null) return;
+            
+            // 使用射击间隔控制（避免射速过快）
+            _continuousFireTimer += Time.deltaTime;
+            if (_continuousFireTimer < FIRE_RATE_INTERVAL)
+            {
+                // 还在冷却中，释放扳机等待
+                if (_lastTriggerState)
+                {
+                    ReleaseTrigger();
+                }
+                return;
+            }
+            
+            // 重置计时器
+            _continuousFireTimer = 0f;
+            
+            try
+            {
+                // 单次触发：按下扳机
+                if (!_lastTriggerState)
+                {
+                    _trackedGun.SetTrigger(true, true, false);  // 按下扳机，justPressed=true
+                    _lastTriggerState = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[TriggerBot] 射击失败: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 尝试直接射击（多种方法）- 已弃用，使用 TrySingleShot 代替
+        /// </summary>
+        private void TryDirectShoot()
+        {
+            if (_trackedGun == null) return;
+            
+            // 方法1: 尝试直接调用 Shoot 方法（如果存在）
+            try
+            {
+                var shootMethod = _trackedGun.GetType().GetMethod("Shoot", 
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                if (shootMethod != null)
+                {
+                    shootMethod.Invoke(_trackedGun, null);
+                    Debug.Log("[TriggerBot] 使用 Shoot() 方法射击");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[TriggerBot] Shoot 方法调用失败: {ex.Message}");
+            }
+            
+            // 方法2: 尝试 Fire 方法
+            try
+            {
+                var fireMethod = _trackedGun.GetType().GetMethod("Fire", 
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                if (fireMethod != null)
+                {
+                    fireMethod.Invoke(_trackedGun, null);
+                    Debug.Log("[TriggerBot] 使用 Fire() 方法射击");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[TriggerBot] Fire 方法调用失败: {ex.Message}");
+            }
+            
+            // 方法3: 尝试 OnShoot 方法
+            try
+            {
+                var onShootMethod = _trackedGun.GetType().GetMethod("OnShoot", 
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (onShootMethod != null)
+                {
+                    onShootMethod.Invoke(_trackedGun, null);
+                    Debug.Log("[TriggerBot] 使用 OnShoot() 方法射击");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[TriggerBot] OnShoot 方法调用失败: {ex.Message}");
+            }
+            
+            // 方法4: 尝试使用 SetTrigger（持续按住）
+            HoldTrigger();
+        }
+        
+        /// <summary>
+        /// 持续按住扳机（用于全自动武器）
+        /// </summary>
+        private void HoldTrigger()
+        {
+            if (_trackedGun == null)
+                return;
+            
+            try
+            {
+                // 计算是否需要触发"justPressed"事件
+                bool justPressed = !_lastTriggerState;
+                
+                // 设置扳机状态：持续按下
+                _trackedGun.SetTrigger(true, justPressed, false);
+                _lastTriggerState = true;
+                
+                if (justPressed)
+                {
+                    Debug.Log("[TriggerBot] 按下扳机");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[TriggerBot] HoldTrigger 出错: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 释放扳机
+        /// </summary>
+        private void ReleaseTrigger()
+        {
+            if (_trackedGun == null)
+                return;
+            
+            try
+            {
+                // 计算是否需要触发"justReleased"事件
+                bool justReleased = _lastTriggerState;
+                
+                // 设置扳机状态：释放
+                _trackedGun.SetTrigger(false, false, justReleased);
+                _lastTriggerState = false;
+                _continuousFireTimer = 0f;
+                
+                if (justReleased)
+                {
+                    Debug.Log("[TriggerBot] 释放扳机");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[TriggerBot] ReleaseTrigger 出错: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 清理已销毁对象的缓存（性能优化）
+        /// </summary>
+        private void ClearInvalidCaches()
+        {
+            // 清理 Collider 缓存
+            var invalidColliders = _colliderCache.Where(kvp => kvp.Key == null || kvp.Value == null).Select(kvp => kvp.Key).ToList();
+            foreach (var key in invalidColliders)
+            {
+                _colliderCache.Remove(key);
+            }
+            
+            // 清理 HeadCollider 缓存
+            var invalidHeadColliders = _headColliderCache.Where(kvp => kvp.Key == null).Select(kvp => kvp.Key).ToList();
+            foreach (var key in invalidHeadColliders)
+            {
+                _headColliderCache.Remove(key);
             }
         }
         

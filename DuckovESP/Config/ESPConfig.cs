@@ -33,12 +33,13 @@ namespace DuckovESP
         // 自动瞄准设置（Aimbot）
         public bool EnableAimbot = false;
         public KeyCode AimbotKey = KeyCode.Mouse1; // 右键瞄准
-        public float AimbotFOV = 30f; // 瞄准视野角度（度）
+        public float AimbotFOV = 300f; // 瞄准半径（像素），建议值 200-500
         public float AimbotSmoothness = 5f; // 平滑度（1-20）
         public bool AimbotPredictMovement = true; // 预测目标移动
         public bool AimbotAimAtHead = true; // 瞄准头部
         public float AimbotMaxDistance = 200f; // 最大瞄准距离
         public bool AimbotIgnoreWalls = false; // 是否忽略墙壁（穿墙）
+        public bool AimbotIgnoreTeamCheck = false; // 测试模式：忽略队伍检查（可攻击友军，用于测试墙体检测）
         
         // 自动扳机设置（Trigger Bot）
         public bool EnableTriggerBot = false;
@@ -181,7 +182,7 @@ namespace DuckovESP
             // 自动瞄准默认关闭
             EnableAimbot = false;
             AimbotKey = KeyCode.Mouse1;
-            AimbotFOV = 30f;
+            AimbotFOV = 300f; // 像素半径
             AimbotSmoothness = 5f;
             AimbotPredictMovement = true;
             AimbotAimAtHead = true;

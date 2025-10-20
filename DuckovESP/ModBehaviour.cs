@@ -9,6 +9,7 @@ using ItemStatsSystem;
 using ItemStatsSystem.Items;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using DuckovESP.UI;
 
 namespace DuckovESP
 {
@@ -22,14 +23,17 @@ namespace DuckovESP
         // 追踪的箱子和标记
         private readonly Dictionary<InteractableLootbox, LootboxMarkerData> _trackedLootboxes = new Dictionary<InteractableLootbox, LootboxMarkerData>();
         
+        // 追踪的世界物品和标记
+        private readonly Dictionary<DuckovItemAgent, GameObject> _trackedWorldItems = new Dictionary<DuckovItemAgent, GameObject>();
+        
         // 3D ESP缓存数据
         private readonly List<ESPData> _espDataCache = new List<ESPData>(100);
         private float _espCacheTimer = 0f;
-        private const float ESP_CACHE_INTERVAL = 0.2f; // 每0.2秒更新一次ESP缓存
+        private const float ESP_CACHE_INTERVAL = 0.3f; // 优化：从0.2秒改为0.3秒更新一次ESP缓存（减少 33% CPU 负载）
         
         // 扫描计时器
         private float _scanTimer = 0f;
-        private const float SCAN_INTERVAL = 1f; // 每秒扫描一次
+        private const float SCAN_INTERVAL = 2f; // 优化：从1秒改为2秒扫描一次（减少50% FindObjectsOfType 调用）
         
         // 配置系统
         private ESPConfig _config;
@@ -48,6 +52,12 @@ namespace DuckovESP
         
         // 作弊系统
         private CheatSystem _cheatSystem;
+        
+        // 欢迎弹窗
+        private WelcomePopup _welcomePopup;
+        
+        // 兼容性标志
+        private bool _bossLiveMapModDetected = false;
         
         // 兼容旧代码的配置属性（从_config读取）
         private bool _showLowValueItems => _config.ShowEmptyBoxes;
@@ -75,6 +85,9 @@ namespace DuckovESP
         {
             Debug.Log("=== DuckovESP Loaded ===");
             
+            // 检测 BossLiveMapMod 是否存在
+            DetectBossLiveMapMod();
+            
             // 加载配置
             _config = ESPConfig.Load();
             _configMenu = new ESPConfigMenu(_config);
@@ -92,6 +105,9 @@ namespace DuckovESP
             
             // 初始化作弊系统
             _cheatSystem = new CheatSystem(_config);
+            
+            // 初始化欢迎弹窗
+            _welcomePopup = new WelcomePopup();
             
             // 将作弊系统引用传递给自动瞄准系统
             _aimbotSystem.SetCheatSystem(_cheatSystem);
@@ -137,6 +153,9 @@ namespace DuckovESP
             MultiSceneCore.OnSubSceneLoaded += OnSubSceneLoaded;
             
             Debug.Log("DuckovESP: 事件已订阅");
+            
+            // 检查是否首次运行，如果是则显示欢迎界面
+            _welcomePopup?.CheckFirstRun();
         }
 
         private void OnDisable()
@@ -172,6 +191,49 @@ namespace DuckovESP
             _cheatSystem?.OnLevelUnload();
         }
 
+        /// <summary>
+        /// 检测 BossLiveMapMod 是否已加载
+        /// </summary>
+        private void DetectBossLiveMapMod()
+        {
+            try
+            {
+                // 尝试通过反射查找 BossLiveMapMod 的 ModBehaviour 类
+                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                foreach (var assembly in assemblies)
+                {
+                    if (assembly.GetName().Name.Contains("BossLiveMapMod") || 
+                        assembly.GetName().Name.Contains("BossLiveMap"))
+                    {
+                        _bossLiveMapModDetected = true;
+                        Debug.Log("[DuckovESP] 检测到 BossLiveMapMod，启用兼容模式");
+                        break;
+                    }
+                    
+                    // 也检查类型名
+                    var types = assembly.GetTypes();
+                    foreach (var type in types)
+                    {
+                        if (type.Namespace != null && type.Namespace.Contains("BossLiveMapMod"))
+                        {
+                            _bossLiveMapModDetected = true;
+                            Debug.Log("[DuckovESP] 检测到 BossLiveMapMod，启用兼容模式");
+                            return;
+                        }
+                    }
+                }
+                
+                if (!_bossLiveMapModDetected)
+                {
+                    Debug.Log("[DuckovESP] 未检测到 BossLiveMapMod");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[DuckovESP] 检测 BossLiveMapMod 时出错: {ex.Message}");
+            }
+        }
+
         private void OnAfterLevelInitialized()
         {
             Debug.Log("DuckovESP: 关卡完全加载，开始扫描箱子");
@@ -195,14 +257,14 @@ namespace DuckovESP
                 _mainCamera = Camera.main;
             }
 
-            // 检查配置菜单切换
-            if (Input.GetKeyDown(_config.MenuToggleKey))
+            // 检查配置菜单切换 (需要按住 Shift)
+            if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(_config.MenuToggleKey))
             {
                 _configMenu.ToggleMenu();
             }
             
-            // 检查敌人列表窗口切换
-            if (Input.GetKeyDown(_config.EnemyListToggleKey))
+            // 检查敌人列表窗口切换 (需要按住 Shift)
+            if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(_config.EnemyListToggleKey))
             {
                 _enemyListWindow?.ToggleWindow();
             }
@@ -213,6 +275,7 @@ namespace DuckovESP
             {
                 _scanTimer = SCAN_INTERVAL;
                 ScanAllLootboxes();
+                ScanWorldItems(); // 添加世界物品扫描
             }
             
             // 定时更新3D ESP缓存（降低频率以提升性能）
@@ -289,14 +352,15 @@ namespace DuckovESP
         }
         
         /// <summary>
-        /// 扫描箱子中的物品
+        /// 扫描箱子中的物品（用于3D ESP，独立于地图标记）
         /// </summary>
         private void ScanLootboxItems(Vector3 playerPos)
         {
-            // 使用已追踪的箱子列表，而不是FindObjectsOfType
-            foreach (var kvp in _trackedLootboxes)
+            // 直接查找所有箱子，不依赖地图标记的追踪列表
+            InteractableLootbox[] allBoxes = UnityEngine.Object.FindObjectsOfType<InteractableLootbox>();
+            
+            foreach (InteractableLootbox box in allBoxes)
             {
-                InteractableLootbox box = kvp.Key;
                 if (box == null || !box.gameObject.activeInHierarchy)
                     continue;
 
@@ -326,11 +390,11 @@ namespace DuckovESP
                     continue;
 
                 // 获取物品列表
-                List<Item> items = kvp.Value.items;
+                List<Item> items = GetItemsFromInventory(inventory);
                 if (items == null || items.Count == 0)
                     continue;
                 
-                // 应用3D ESP的品质过滤 + 钥匙特殊逻辑 + 任务/建筑材料特殊逻辑
+                // 应用3D ESP的品质过滤（独立于地图标记） + 钥匙特殊逻辑 + 任务/建筑材料特殊逻辑
                 List<Item> filteredItems = new List<Item>();
                 
                 foreach (Item item in items)
@@ -356,7 +420,7 @@ namespace DuckovESP
                         continue;
                     }
                     
-                    // 否则应用品质过滤
+                    // 【关键】应用3D ESP的品质过滤（MinQualityFilter3D）
                     if (_config.MinQualityFilter3D > 0)
                     {
                         ItemValueLevel level = ItemQualityUtil.GetItemValueLevel(item);
@@ -480,6 +544,9 @@ namespace DuckovESP
         /// </summary>
         private void OnGUI()
         {
+            // 绘制欢迎弹窗（优先级最高，可能覆盖其他UI）
+            _welcomePopup?.OnGUI();
+            
             // 绘制配置菜单（总是检查，即使不在关卡中）
             _configMenu?.DrawMenu();
             
@@ -602,6 +669,8 @@ namespace DuckovESP
             {
                 // 检查这个物品位置是否有对应的小地图标记
                 bool hasMapMarker = false;
+                
+                // 检查箱子标记
                 foreach (var markerData in _trackedLootboxes.Values)
                 {
                     if (markerData.lootbox != null && 
@@ -609,6 +678,20 @@ namespace DuckovESP
                     {
                         hasMapMarker = true;
                         break;
+                    }
+                }
+                
+                // 检查世界物品标记
+                if (!hasMapMarker)
+                {
+                    foreach (var worldItem in _trackedWorldItems.Keys)
+                    {
+                        if (worldItem != null && 
+                            Vector3.Distance(worldItem.transform.position, espData.worldPosition) < 0.1f)
+                        {
+                            hasMapMarker = true;
+                            break;
+                        }
                     }
                 }
                 
@@ -903,30 +986,41 @@ namespace DuckovESP
                     }
                 }
                 
-                // 如果包含任务物品或建筑材料，使用特殊边框颜色
+                // 边框颜色优先级：高价值物品 > 任务物品 > 建筑材料
                 Color borderColor = itemColor;
-                if (hasQuestItem && hasBuildingMaterial)
+                bool useThickBorder = false;
+                
+                // 如果是高价值物品（紫色+），优先使用物品颜色
+                if ((int)maxLevel >= (int)ItemValueLevel.Purple)
+                {
+                    borderColor = itemColor;
+                }
+                // 否则检查任务和建筑材料
+                else if (hasQuestItem && hasBuildingMaterial)
                 {
                     // 同时是任务物品和建筑材料，混合颜色
                     borderColor = Color.Lerp(_config.QuestItemColor, _config.BuildingMaterialColor, 0.5f);
+                    useThickBorder = true;
                 }
                 else if (hasQuestItem)
                 {
                     borderColor = _config.QuestItemColor;
+                    useThickBorder = true;
                 }
                 else if (hasBuildingMaterial)
                 {
                     borderColor = _config.BuildingMaterialColor;
+                    useThickBorder = true;
                 }
                 
                 // 绘制半透明背景
                 Color bgColor = new Color(0, 0, 0, _config.BackgroundAlpha);
                 DrawRectFast(backgroundRect, bgColor);
                 
-                // 绘制边框（使用特殊颜色或品质颜色）
+                // 绘制边框
                 float borderThickness = _config.BorderThickness;
-                // 如果是任务/建筑物品，边框加粗
-                if (hasQuestItem || hasBuildingMaterial)
+                // 任务/建筑物品边框加粗（但不覆盖高价值物品）
+                if (useThickBorder)
                 {
                     borderThickness *= 1.5f;
                 }
@@ -1023,6 +1117,166 @@ namespace DuckovESP
             catch (Exception ex)
             {
                 Debug.LogError($"DuckovESP: 扫描箱子时出错 - {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 扫描世界物品（露天刷新的物品）
+        /// </summary>
+        private void ScanWorldItems()
+        {
+            try
+            {
+                if (!LevelManager.LevelInited)
+                    return;
+
+                // 清理已销毁的世界物品标记
+                List<DuckovItemAgent> toRemove = new List<DuckovItemAgent>();
+                foreach (var kvp in _trackedWorldItems)
+                {
+                    if (kvp.Key == null || kvp.Value == null)
+                    {
+                        toRemove.Add(kvp.Key);
+                    }
+                }
+                foreach (var key in toRemove)
+                {
+                    if (_trackedWorldItems.TryGetValue(key, out GameObject marker))
+                    {
+                        if (marker != null)
+                        {
+                            UnityEngine.Object.Destroy(marker);
+                        }
+                    }
+                    _trackedWorldItems.Remove(key);
+                }
+
+                // 查找所有世界物品
+                DuckovItemAgent[] allWorldItems = UnityEngine.Object.FindObjectsOfType<DuckovItemAgent>();
+                int newItemCount = 0;
+
+                foreach (DuckovItemAgent itemAgent in allWorldItems)
+                {
+                    if (itemAgent == null || !itemAgent.gameObject.activeInHierarchy)
+                        continue;
+
+                    // 如果已经追踪过，跳过
+                    if (_trackedWorldItems.ContainsKey(itemAgent))
+                        continue;
+
+                    // 获取物品
+                    Item item = itemAgent.Item;
+                    if (item == null)
+                        continue;
+
+                    // 检查是否是任务物品或建筑材料（优先显示）
+                    bool isQuestOrBuilding = false;
+                    if (_questItemDetector != null)
+                    {
+                        isQuestOrBuilding = (_config.HighlightQuestItems && _questItemDetector.IsQuestRequiredItem(item)) ||
+                                           (_config.HighlightBuildingMaterials && _questItemDetector.IsBuildingRequiredItem(item));
+                    }
+
+                    // 如果是任务物品或建筑材料，绕过品质过滤
+                    if (!isQuestOrBuilding)
+                    {
+                        // 应用品质过滤
+                        if (_minQualityFilter > 0 && item.Quality < _minQualityFilter)
+                            continue;
+                    }
+
+                    // 创建小地图标记
+                    GameObject markerObj = CreateWorldItemMarker(itemAgent, item);
+                    if (markerObj != null)
+                    {
+                        _trackedWorldItems[itemAgent] = markerObj;
+                        newItemCount++;
+                    }
+                }
+
+                if (newItemCount > 0)
+                {
+                    Debug.Log($"DuckovESP: 发现 {newItemCount} 个新的世界物品（小地图标记）");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"DuckovESP: 扫描世界物品时出错 - {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 为世界物品创建小地图标记
+        /// </summary>
+        private GameObject CreateWorldItemMarker(DuckovItemAgent itemAgent, Item item)
+        {
+            try
+            {
+                // 获取物品价值等级和颜色
+                ItemValueLevel valueLevel = ItemQualityUtil.GetItemValueLevel(item);
+                Color markerColor = ItemQualityUtil.GetItemValueLevelColor(valueLevel);
+                
+                // 检查是否是任务物品或建筑材料，使用特殊颜色
+                bool isQuestItem = false;
+                bool isBuildingMaterial = false;
+                if (_questItemDetector != null)
+                {
+                    isQuestItem = _config.HighlightQuestItems && _questItemDetector.IsQuestRequiredItem(item);
+                    isBuildingMaterial = _config.HighlightBuildingMaterials && _questItemDetector.IsBuildingRequiredItem(item);
+                }
+                
+                // 任务物品优先使用黄色，建筑材料使用青色
+                if (isQuestItem)
+                {
+                    markerColor = _config.QuestItemColor;
+                }
+                else if (isBuildingMaterial)
+                {
+                    markerColor = _config.BuildingMaterialColor;
+                }
+
+                // 创建标记对象
+                GameObject markerObj = new GameObject($"WorldItemMarker_{itemAgent.GetInstanceID()}");
+                markerObj.transform.position = itemAgent.transform.position;
+
+                // 添加地图标记组件
+                SimplePointOfInterest poi = markerObj.AddComponent<SimplePointOfInterest>();
+                poi.Color = markerColor;
+                poi.ShadowColor = Color.black;
+                poi.ShadowDistance = 0f;
+
+                // 设置标记图标和文本（添加任务/建筑材料标签）
+                Sprite icon = GetMarkerIcon();
+                string itemName = item.DisplayName;
+                if (item.StackCount > 1)
+                {
+                    itemName = $"{itemName}x{item.StackCount}";
+                }
+                
+                // 添加任务物品或建筑材料标签
+                if (isQuestItem)
+                {
+                    itemName = $"[任务] {itemName}";
+                }
+                else if (isBuildingMaterial)
+                {
+                    itemName = $"[建材] {itemName}";
+                }
+                
+                poi.Setup(icon, itemName, true, null);
+
+                // 移动到主场景
+                if (MultiSceneCore.MainScene != null)
+                {
+                    SceneManager.MoveGameObjectToScene(markerObj, MultiSceneCore.MainScene.Value);
+                }
+
+                return markerObj;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"DuckovESP: 创建世界物品标记失败 - {ex.Message}");
+                return null;
             }
         }
 
@@ -1127,6 +1381,10 @@ namespace DuckovESP
 
                     // 如果已经追踪过，跳过
                     if (_trackedLootboxes.ContainsKey(box))
+                        continue;
+
+                    // 【过滤人物装备】检查 InteractableLootbox 是否在人物身上
+                    if (IsLootboxOnCharacter(box))
                         continue;
 
                     // 获取箱子的Inventory
@@ -1267,6 +1525,89 @@ namespace DuckovESP
         }
 
         /// <summary>
+        /// 检查 InteractableLootbox 是否在人物身上（而不是独立的箱子）
+        /// </summary>
+        private bool IsLootboxOnCharacter(InteractableLootbox lootbox)
+        {
+            if (lootbox == null)
+                return false;
+
+            try
+            {
+                // 检查 Lootbox 的 GameObject 或其父节点是否有 CharacterMainControl 组件
+                CharacterMainControl character = lootbox.GetComponent<CharacterMainControl>();
+                if (character == null)
+                {
+                    character = lootbox.GetComponentInParent<CharacterMainControl>();
+                }
+                
+                if (character != null)
+                {
+                    // 是人物身上的 Lootbox（如背包、装备栏）
+                    return true;
+                }
+                
+                // 检查 GameObject 名字，人物相关的通常有特定命名
+                string objName = lootbox.gameObject.name.ToLower();
+                if (objName.Contains("character") || 
+                    objName.Contains("player") || 
+                    objName.Contains("backpack") ||
+                    objName.Contains("equipment") ||
+                    objName.Contains("inventory_character"))
+                {
+                    return true;
+                }
+                
+                // 不是人物身上的，是独立箱子
+                return false;
+            }
+            catch
+            {
+                // 如果检查失败，保守起见认为不是人物装备
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 检查Inventory是否属于人物装备（玩家、Boss、NPC等）
+        /// 通过检查 Inventory 的父节点是否在 LootBoxInventoriesParent 下来判断
+        /// </summary>
+        private bool IsCharacterInventory(Inventory inventory)
+        {
+            if (inventory == null)
+                return false;
+
+            try
+            {
+                // 箱子的 Inventory 都在 LevelManager.LootBoxInventoriesParent 下
+                // 人物装备的 Inventory 在人物 GameObject 下
+                Transform lootBoxParent = LevelManager.LootBoxInventoriesParent;
+                if (lootBoxParent != null && inventory.transform.IsChildOf(lootBoxParent))
+                {
+                    // 是箱子 Inventory，不是人物装备
+                    return false;
+                }
+                
+                // 不在 LootBoxInventoriesParent 下，可能是人物装备或其他
+                // 进一步检查是否有 CharacterMainControl 组件
+                CharacterMainControl character = inventory.GetComponentInParent<CharacterMainControl>();
+                if (character != null)
+                {
+                    // 是人物装备
+                    return true;
+                }
+                
+                // 保守起见，如果不在 LootBoxInventoriesParent 下且没有明确证据是箱子，就认为可能是人物装备
+                return true;
+            }
+            catch
+            {
+                // 如果检查失败，保守起见认为是人物装备（跳过）
+                return true;
+            }
+        }
+
+        /// <summary>
         /// 判断物品是否为未录入的钥匙
         /// </summary>
         private bool IsUnregisteredKey(Item item)
@@ -1381,14 +1722,24 @@ namespace DuckovESP
 
         /// <summary>
         /// 根据物品品质获取标记颜色 - 使用新的ItemValueLevel系统
-        /// 优先级：任务物品 > 高价值物品(紫色+) > 建筑材料 > 普通物品颜色
+        /// 优先级调整：高价值物品(紫色+) > 任务物品 > 建筑材料 > 普通物品颜色
+        /// 任务物品和建筑材料通过文字标记 [任务物品] [建筑材料] 体现，不覆盖高价值物品颜色
         /// </summary>
         private Color GetMarkerColorByQuality(List<Item> items)
         {
             if (items.Count == 0)
                 return Color.gray;
 
-            // 最高优先级：检查是否有任务物品
+            // 计算最高品质
+            ItemValueLevel maxLevel = items.Max(item => ItemQualityUtil.GetItemValueLevel(item));
+            
+            // 最高优先级：高价值物品（紫色及以上）
+            if ((int)maxLevel >= (int)ItemValueLevel.Purple)
+            {
+                return ItemQualityUtil.GetItemValueLevelColor(maxLevel);
+            }
+            
+            // 第二优先级：任务物品（仅当没有紫色+物品时）
             if (_questItemDetector != null && _config.HighlightQuestItems)
             {
                 foreach (Item item in items)
@@ -1400,16 +1751,7 @@ namespace DuckovESP
                 }
             }
             
-            // 计算最高品质
-            ItemValueLevel maxLevel = items.Max(item => ItemQualityUtil.GetItemValueLevel(item));
-            
-            // 次高优先级：高价值物品（紫色及以上）优先于建筑材料
-            if ((int)maxLevel >= (int)ItemValueLevel.Purple)
-            {
-                return ItemQualityUtil.GetItemValueLevelColor(maxLevel);
-            }
-            
-            // 第三优先级：检查是否有建筑材料
+            // 第三优先级：建筑材料（仅当没有高价值和任务物品时）
             if (_questItemDetector != null && _config.HighlightBuildingMaterials)
             {
                 foreach (Item item in items)
@@ -1421,7 +1763,7 @@ namespace DuckovESP
                 }
             }
 
-            // 最低优先级：使用品质颜色
+            // 最低优先级：使用普通品质颜色
             return ItemQualityUtil.GetItemValueLevelColor(maxLevel);
         }
         
@@ -1507,14 +1849,38 @@ namespace DuckovESP
             try
             {
                 List<Sprite> icons = MapMarkerManager.Icons;
-                if (icons != null && icons.Count >= 4 && icons[3] != null)
+                if (icons != null && icons.Count > 0)
                 {
-                    return icons[3]; // 使用第4个图标
-                }
-                
-                if (icons != null && icons.Count >= 1 && icons[0] != null)
-                {
-                    return icons[0]; // 备用第1个图标
+                    // 兼容 BossLiveMapMod: 避免使用 icons[2]（它用于 Boss 标记）
+                    // icons[0] - 通常是默认标记
+                    // icons[1] - 可能是重要位置
+                    // icons[2] - BossLiveMapMod 使用（避免冲突）
+                    // icons[5] - 可能是宝箱/物品
+                    // icons[7] - 其他特殊标记
+                    
+                    // 优先使用第6个图标（索引5）- 通常用于物品/宝箱
+                    if (icons.Count >= 6 && icons[5] != null)
+                    {
+                        return icons[5];
+                    }
+                    
+                    // 备选：第8个图标（索引7）
+                    if (icons.Count >= 8 && icons[7] != null)
+                    {
+                        return icons[7];
+                    }
+                    
+                    // 备选：第2个图标（索引1）- 但避免 icons[2]
+                    if (icons.Count >= 2 && icons[1] != null)
+                    {
+                        return icons[1];
+                    }
+                    
+                    // 最后备选：第1个图标
+                    if (icons[0] != null)
+                    {
+                        return icons[0];
+                    }
                 }
             }
             catch { }
@@ -1667,23 +2033,46 @@ namespace DuckovESP
         }
 
         /// <summary>
-        /// 清理所有标记
+        /// 清理所有标记（兼容 BossLiveMapMod）
         /// </summary>
         private void ClearAllMarkers()
         {
+            // 清理箱子标记（只删除我们自己创建的）
             foreach (KeyValuePair<InteractableLootbox, LootboxMarkerData> kv in _trackedLootboxes)
             {
                 if (kv.Value.marker != null)
                 {
                     try
                     {
-                        UnityEngine.Object.Destroy(kv.Value.marker);
+                        // 检查是否是我们创建的标记（名称检查）
+                        if (kv.Value.marker.name.StartsWith("LootboxMarker_"))
+                        {
+                            UnityEngine.Object.Destroy(kv.Value.marker);
+                        }
                     }
                     catch { }
                 }
             }
-
             _trackedLootboxes.Clear();
+            
+            // 清理世界物品标记（只删除我们自己创建的）
+            foreach (KeyValuePair<DuckovItemAgent, GameObject> kv in _trackedWorldItems)
+            {
+                if (kv.Value != null)
+                {
+                    try
+                    {
+                        // 检查是否是我们创建的标记（名称检查）
+                        if (kv.Value.name.StartsWith("WorldItemMarker_"))
+                        {
+                            UnityEngine.Object.Destroy(kv.Value);
+                        }
+                    }
+                    catch { }
+                }
+            }
+            _trackedWorldItems.Clear();
+            
             Debug.Log("DuckovESP: 已清理所有标记");
         }
 

@@ -234,13 +234,36 @@ namespace DuckovESP
             _config.AimbotAimAtHead = GUILayout.Toggle(_config.AimbotAimAtHead, " 瞄准头部（否则瞄准身体）", _toggleStyle);
             _config.AimbotPredictMovement = GUILayout.Toggle(_config.AimbotPredictMovement, " 预测目标移动", _toggleStyle);
             _config.AimbotIgnoreWalls = GUILayout.Toggle(_config.AimbotIgnoreWalls, " 忽略墙壁（穿墙瞄准）", _toggleStyle);
+            _config.AimbotIgnoreTeamCheck = GUILayout.Toggle(_config.AimbotIgnoreTeamCheck, " [测试] 忽略队伍检查（可攻击友军）", _toggleStyle);
+            
+            if (_config.AimbotIgnoreTeamCheck)
+            {
+                GUILayout.Label("  ⚠️ 测试模式：将攻击所有目标（包括友军）", _labelStyle);
+            }
             
             GUILayout.Space(10);
             GUILayout.Label("=== ⚠️ 自动扳机设置（Trigger Bot）⚠️ ===", _labelStyle);
             GUILayout.Space(5);
             
-            // 启用自动扳机
+            // 启用自动扳机（提示依赖关系）
+            bool originalTriggerBot = _config.EnableTriggerBot;
             _config.EnableTriggerBot = GUILayout.Toggle(_config.EnableTriggerBot, " 启用自动扳机", _toggleStyle);
+            
+            // 如果启用自动扳机但自动瞄准未启用，显示警告
+            if (_config.EnableTriggerBot && !_config.EnableAimbot)
+            {
+                GUILayout.Label("⚠️ 警告: 自动扳机需要启用自动瞄准才能工作！", _labelStyle);
+                // 自动启用自动瞄准
+                if (!originalTriggerBot && _config.EnableTriggerBot)
+                {
+                    _config.EnableAimbot = true;
+                    GUILayout.Label("✓ 已自动启用自动瞄准", _labelStyle);
+                }
+            }
+            
+            GUILayout.Space(5);
+            GUILayout.Label("说明: 自动扳机使用自动瞄准的目标检测", _labelStyle);
+            GUILayout.Label("范围内有敌人时自动开火", _labelStyle);
             
             // 扳机延迟
             GUILayout.BeginHorizontal();
@@ -252,16 +275,22 @@ namespace DuckovESP
             _config.TriggerBotOnlyADS = GUILayout.Toggle(_config.TriggerBotOnlyADS, " 仅在瞄准时触发", _toggleStyle);
             _config.TriggerBotTeamCheck = GUILayout.Toggle(_config.TriggerBotTeamCheck, " 检查队友（避免误伤）", _toggleStyle);
             
+            GUILayout.Space(5);
+            GUILayout.Label("💡 提示: TriggerBot 会自动使用子弹传送模式，无视墙体", _labelStyle);
+            
             GUILayout.Space(10);
             GUILayout.Label("=== 🎮 作弊功能（快捷键）===", _labelStyle);
             GUILayout.Space(5);
             
-            GUILayout.Label($"• F7 = 无敌模式（保持满血）", _labelStyle);
-            GUILayout.Label($"• F8 = 一击必杀（需要自动瞄准启用）", _labelStyle);
-            GUILayout.Label($"• F9 = 速度提升（{2.5f}x 跑步速度）", _labelStyle);
-            GUILayout.Label($"• F10 = 无限负重（99万kg）", _labelStyle);
-            GUILayout.Label($"• F11 = 无限子弹（弹匣永不减少）", _labelStyle);
-            GUILayout.Label($"• F12 = 无限耐力（永不疲劳）", _labelStyle);
+            GUILayout.Label("⚠️ 注意：所有快捷键都需要按住 Shift 键！", _labelStyle);
+            GUILayout.Space(3);
+            
+            GUILayout.Label($"• Shift + F7 = 无敌模式（保持满血）", _labelStyle);
+            GUILayout.Label($"• Shift + F8 = 一击必杀（需要自动瞄准启用）", _labelStyle);
+            GUILayout.Label($"• Shift + F9 = 速度提升（{2.5f}x 跑步速度）", _labelStyle);
+            GUILayout.Label($"• Shift + F10 = 无限负重（99万kg）", _labelStyle);
+            GUILayout.Label($"• Shift + F11 = 无限子弹（弹匣永不减少）", _labelStyle);
+            GUILayout.Label($"• Shift + F12 = 无限耐力（永不疲劳）", _labelStyle);
             
             GUILayout.Space(5);
             GUILayout.Label("⚠️ 警告: 作弊功能会影响游戏平衡性", _labelStyle);
@@ -291,7 +320,7 @@ namespace DuckovESP
             GUILayout.EndHorizontal();
             
             GUILayout.Space(5);
-            GUILayout.Label($"按 {_config.MenuToggleKey} 打开/关闭此菜单", _labelStyle);
+            GUILayout.Label($"按 Shift + {_config.MenuToggleKey} 打开/关闭此菜单", _labelStyle);
             
             GUILayout.EndVertical();
             
