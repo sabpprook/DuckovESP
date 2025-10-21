@@ -279,6 +279,17 @@ namespace DuckovESP
             GUILayout.Label("💡 提示: TriggerBot 会自动使用子弹传送模式，无视墙体", _labelStyle);
             
             GUILayout.Space(10);
+            GUILayout.Label("=== ⚠️ 无后座力设置（No Recoil）⚠️ ===", _labelStyle);
+            GUILayout.Space(5);
+            
+            // 启用无后座力
+            _config.EnableNoRecoil = GUILayout.Toggle(_config.EnableNoRecoil, " 启用无后座力", _toggleStyle);
+            
+            GUILayout.Space(5);
+            GUILayout.Label("说明: 消除所有武器的后座力，射击时枪械不会抖动", _labelStyle);
+            GUILayout.Label("工作原理: 修改角色后座力控制和武器属性", _labelStyle);
+            
+            GUILayout.Space(10);
             GUILayout.Label("=== 🎮 作弊功能（快捷键）===", _labelStyle);
             GUILayout.Space(5);
             

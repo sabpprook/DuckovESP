@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using ItemStatsSystem;
 using UnityEngine;
 
 namespace DuckovESP
@@ -83,6 +84,14 @@ namespace DuckovESP
         // 组件缓存（避免重复 GetComponent 调用）
         private readonly Dictionary<DamageReceiver, Collider> _colliderCache = new Dictionary<DamageReceiver, Collider>();
         private readonly Dictionary<DamageReceiver, HeadCollider> _headColliderCache = new Dictionary<DamageReceiver, HeadCollider>();
+        
+        // ===== 无后座力相关字段（参考 Mod_Aimbot）=====
+        private static readonly int RecoilControlStatHash = "RecoilControl".GetHashCode();
+        private static readonly int RecoilHorizontalStatHash = "RecoilHorizontal".GetHashCode();
+        private static readonly int RecoilVerticalStatHash = "RecoilVertical".GetHashCode();
+        private float? _originalRecoilControl = null;
+        private float? _originalRecoilHorizontal = null;
+        private float? _originalRecoilVertical = null;
         
         public AimbotSystem(ESPConfig config)
         {
@@ -166,6 +175,12 @@ namespace DuckovESP
             // 追踪当前持有的枪械
             UpdateTrackedGun();
             
+            // 自动应用无后座力
+            if (_config.EnableNoRecoil)
+            {
+                ApplyNoRecoil();
+            }
+            
             // 查找最佳目标（自动瞄准和自动扳机共享）
             _lastBestTarget = (_config.EnableAimbot || _config.EnableTriggerBot) ? FindBestTarget() : default(AutoAimCandidate);
             
@@ -222,6 +237,60 @@ namespace DuckovESP
                     // 列出枪械方法用于调试
                     ListGunMethods();
                 }
+            }
+        }
+        
+        /// <summary>
+        /// 应用无后座力（角色和武器）- 基于 Mod_Aimbot
+        /// </summary>
+        private void ApplyNoRecoil()
+        {
+            if (_player == null || _player.CharacterItem == null)
+                return;
+
+            try
+            {
+                // 修改角色后座力控制
+                var stat = _player.CharacterItem.GetStat(RecoilControlStatHash);
+                if (stat != null)
+                {
+                    if (_originalRecoilControl == null)
+                        _originalRecoilControl = stat.BaseValue;
+                    stat.BaseValue = 9999f;
+                }
+
+                // 修改武器后座力
+                ItemAgent_Gun gun = _player.agentHolder?.CurrentHoldGun;
+                if (gun != null && gun.Item != null)
+                {
+                    SetItemStat(gun.Item, RecoilHorizontalStatHash, ref _originalRecoilHorizontal);
+                    SetItemStat(gun.Item, RecoilVerticalStatHash, ref _originalRecoilVertical);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[NoRecoil] 应用无后座力时出错: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 设置武器 Stat 属性
+        /// </summary>
+        private void SetItemStat(Item item, int statHash, ref float? originalValue)
+        {
+            try
+            {
+                var stat = item.GetStat(statHash);
+                if (stat != null)
+                {
+                    if (originalValue == null)
+                        originalValue = stat.BaseValue;
+                    stat.BaseValue = 0f;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[NoRecoil] 设置 Item Stat 时出错: {ex.Message}");
             }
         }
         
@@ -928,16 +997,61 @@ namespace DuckovESP
             }
             return receiver.health != null;
         }
+
+        /// <summary>
+        /// 检测目标是否为无头 Boss（如暴走街机）
+        /// 这些 Boss 没有头部或头部位置异常，需要强制瞄准身体
+        /// </summary>
+        private bool IsHeadlessBoss(DamageReceiver receiver)
+        {
+            if (receiver == null || receiver.name == null)
+                return false;
+
+            string name = receiver.name.ToLower();
+            
+            // 已知的无头 Boss 列表
+            string[] headlessBosses = 
+            {
+                "暴走街机",      // 中文名
+                "arcade",        // 可能的英文名
+                "boss_arcade",   // 带前缀的名称
+                "狂暴街机",      // 别名
+                "疯狂街机"       // 别名
+            };
+
+            foreach (string bossName in headlessBosses)
+            {
+                if (name.Contains(bossName.ToLower()))
+                {
+                    // 首次检测到无头 Boss 时记录日志
+                    if (UnityEngine.Random.value < 0.01f)
+                    {
+                        Debug.Log($"[Aimbot] 检测到无头 Boss: {receiver.name}，切换为身体瞄准模式");
+                    }
+                    return true;
+                }
+            }
+
+            return false;
+        }
         
         /// <summary>
         /// 获取 DamageReceiver 的瞄准点
         /// 性能优化：缓存 Collider 和 HeadCollider
+        /// 特殊处理：对于没有头部的 Boss（如暴走街机），自动改为身体瞄准
         /// </summary>
         private Vector3 GetReceiverAimPoint(DamageReceiver receiver)
         {
             try
             {
-                // 如果启用了瞄准头部
+                // 步骤1：首先使用 Collider.bounds.center（最可靠的方法 - 参考 Mod_Aimbot）
+                Collider collider = receiver.GetComponent<Collider>();
+                if (collider != null)
+                {
+                    return collider.bounds.center;
+                }
+                
+                // 步骤2：如果启用了瞄准头部，尝试找头部
                 if (_config.AimbotAimAtHead)
                 {
                     Transform headTransform = TryGetHeadTransform(receiver);
@@ -953,27 +1067,12 @@ namespace DuckovESP
                     }
                 }
                 
-                // 性能优化：使用缓存的 Collider
-                if (!_colliderCache.TryGetValue(receiver, out Collider collider))
-                {
-                    collider = receiver.GetComponent<Collider>();
-                    if (collider != null)
-                    {
-                        _colliderCache[receiver] = collider;
-                    }
-                }
-                
-                if (collider != null)
-                {
-                    return collider.bounds.center;
-                }
-                
-                // 默认位置（身体中心）
-                return receiver.transform.position + Vector3.up * 1.0f;
+                // 步骤3：默认位置（身体中心向上 0.5 米）- Mod_Aimbot 的标准做法
+                return receiver.transform.position + Vector3.up * 0.5f;
             }
             catch
             {
-                return receiver.transform.position + Vector3.up * 1.0f;
+                return receiver.transform.position + Vector3.up * 0.5f;
             }
         }
         
@@ -1040,7 +1139,21 @@ namespace DuckovESP
             {
                 Debug.Log($"[TriggerBot] 已启动 - 仅瞄准触发: {_config.TriggerBotOnlyADS}, 延迟: {_config.TriggerBotDelay}s");
                 Debug.Log($"[TriggerBot] 使用自动瞄准的目标检测系统");
+                Debug.Log($"[TriggerBot] 基地保护：在基地内禁用自动扳机");
                 _triggerBotLoggedOnce = true;
+            }
+            
+            // 基地检测：在基地内禁用自动扳机
+            if (IsPlayerInBase())
+            {
+                // 在基地内，确保扳机释放
+                if (_lastTriggerState)
+                {
+                    ReleaseTrigger();
+                }
+                _targetInSight = false;
+                _triggerDelayTimer = 0f;
+                return;
             }
             
             // 检查是否仅在瞄准时触发（检测右键是否按下）
@@ -1355,6 +1468,33 @@ namespace DuckovESP
             catch (Exception ex)
             {
                 Debug.LogError($"[TriggerBot] ReleaseTrigger 出错: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 检测玩家是否在基地内
+        /// 基于场景名称判断：如果在 Shelter（庇护所）或 MainMenu（主菜单），则认为在基地
+        /// </summary>
+        private bool IsPlayerInBase()
+        {
+            try
+            {
+                // 检查场景名称
+                string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                
+                // 精确匹配基地场景名称
+                if (sceneName == "Base_SceneV2")
+                {
+                    Debug.Log("[TriggerBot] 玩家在基地内 (Base_SceneV2)，禁用自动扳机");
+                    return true;
+                }
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[TriggerBot] 基地检测失败: {ex.Message}");
+                return false; // 出错时允许触发，避免功能失效
             }
         }
         

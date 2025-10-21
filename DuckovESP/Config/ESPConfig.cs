@@ -47,6 +47,9 @@ namespace DuckovESP
         public bool TriggerBotOnlyADS = true; // 仅在瞄准时触发
         public bool TriggerBotTeamCheck = true; // 检查队友
         
+        // 无后座力设置（No Recoil）
+        public bool EnableNoRecoil = false;
+        
         // 敌人ESP设置
         public bool EnableEnemyESP = true;
         public float MaxEnemyESPDistance = 300f;

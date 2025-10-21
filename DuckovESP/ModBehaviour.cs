@@ -269,17 +269,23 @@ namespace DuckovESP
                 _enemyListWindow?.ToggleWindow();
             }
 
-            // 定时扫描小地图标记
-            _scanTimer -= Time.unscaledDeltaTime;
-            if (_scanTimer <= 0f)
+            // 检查是否在基地（在基地内禁用 ESP 和扫描）
+            bool isInBase = IsPlayerInBase();
+
+            // 定时扫描小地图标记（基地内不扫描）
+            if (!isInBase)
             {
-                _scanTimer = SCAN_INTERVAL;
-                ScanAllLootboxes();
-                ScanWorldItems(); // 添加世界物品扫描
+                _scanTimer -= Time.unscaledDeltaTime;
+                if (_scanTimer <= 0f)
+                {
+                    _scanTimer = SCAN_INTERVAL;
+                    ScanAllLootboxes();
+                    ScanWorldItems(); // 添加世界物品扫描
+                }
             }
             
-            // 定时更新3D ESP缓存（降低频率以提升性能）
-            if (_enable3DESP && _mainCamera != null)
+            // 定时更新3D ESP缓存（基地内不更新）
+            if (!isInBase && _enable3DESP && _mainCamera != null)
             {
                 _espCacheTimer -= Time.unscaledDeltaTime;
                 if (_espCacheTimer <= 0f)
@@ -289,17 +295,20 @@ namespace DuckovESP
                 }
             }
 
-            // 更新标记位置
-            UpdateMarkerPositions();
+            // 更新标记位置（基地内不更新）
+            if (!isInBase)
+            {
+                UpdateMarkerPositions();
+            }
             
-            // 更新敌人检测系统
-            if (_config.EnableEnemyESP && CharacterMainControl.Main != null)
+            // 更新敌人检测系统（基地内不检测）
+            if (!isInBase && _config.EnableEnemyESP && CharacterMainControl.Main != null)
             {
                 _enemyDetector?.Update(CharacterMainControl.Main);
             }
             
-            // 更新任务物品检测器
-            if (_config.HighlightQuestItems || _config.HighlightBuildingMaterials)
+            // 更新任务物品检测器（基地内不检测）
+            if (!isInBase && (_config.HighlightQuestItems || _config.HighlightBuildingMaterials))
             {
                 _questItemDetector?.Update();
             }
@@ -550,8 +559,11 @@ namespace DuckovESP
             // 绘制配置菜单（总是检查，即使不在关卡中）
             _configMenu?.DrawMenu();
             
-            // 绘制敌人列表窗口
-            if (_config.EnableEnemyESP && LevelManager.LevelInited)
+            // 检查是否在基地
+            bool isInBase = IsPlayerInBase();
+            
+            // 绘制敌人列表窗口（基地内不显示）
+            if (!isInBase && _config.EnableEnemyESP && LevelManager.LevelInited)
             {
                 var enemyList = _enemyDetector?.GetEnemyInfoList();
                 if (enemyList != null)
@@ -566,7 +578,8 @@ namespace DuckovESP
                 DrawCheatStatusIndicator();
             }
             
-            if (!_enable3DESP || !LevelManager.LevelInited || _mainCamera == null)
+            // 基地内不显示 ESP
+            if (isInBase || !_enable3DESP || !LevelManager.LevelInited || _mainCamera == null)
                 return;
 
             // 确保GUI样式已初始化
@@ -1169,6 +1182,12 @@ namespace DuckovESP
                     if (item == null)
                         continue;
 
+                    // 获取物品价值等级
+                    ItemValueLevel itemLevel = ItemQualityUtil.GetItemValueLevel(item);
+                    
+                    // 检查是否是未录入的钥匙（钥匙总是显示）
+                    bool isUnregisteredKey = IsUnregisteredKey(item);
+                    
                     // 检查是否是任务物品或建筑材料（优先显示）
                     bool isQuestOrBuilding = false;
                     if (_questItemDetector != null)
@@ -1177,13 +1196,9 @@ namespace DuckovESP
                                            (_config.HighlightBuildingMaterials && _questItemDetector.IsBuildingRequiredItem(item));
                     }
 
-                    // 如果是任务物品或建筑材料，绕过品质过滤
-                    if (!isQuestOrBuilding)
-                    {
-                        // 应用品质过滤
-                        if (_minQualityFilter > 0 && item.Quality < _minQualityFilter)
-                            continue;
-                    }
+                    // 品质过滤：如果不是钥匙且不是任务/建筑材料且品质低于阈值，跳过
+                    if (!isUnregisteredKey && !isQuestOrBuilding && (int)itemLevel < _config.MinQualityForMapMarkers)
+                        continue;
 
                     // 创建小地图标记
                     GameObject markerObj = CreateWorldItemMarker(itemAgent, item);
@@ -2074,6 +2089,25 @@ namespace DuckovESP
             _trackedWorldItems.Clear();
             
             Debug.Log("DuckovESP: 已清理所有标记");
+        }
+
+        /// <summary>
+        /// 检测玩家是否在自己的基地内
+        /// </summary>
+        /// <returns>如果在基地内返回 true，否则返回 false</returns>
+        private bool IsPlayerInBase()
+        {
+            try
+            {
+                string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                // 检查场景名是否包含基地场景标识
+                return sceneName.Contains("Base_SceneV2");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[DuckovESP] 检测基地状态时出错: {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>
