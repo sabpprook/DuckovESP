@@ -225,6 +225,8 @@
     }
   },
   "Welcome": {
+    "ReviewNotice": "⭐⭐⭐⭐⭐ 如果喜欢此模组，请在 Steam 上给予好评！",
+    "FeedbackNotice": "💬 有问题或建议？请在评论区留言，我会尽快回复！",
     "Title": "欢迎使用 DuckovESP v2.7",
     "Subtitle": "🎉 重大更新：多语言支持 + 国际化界面！",
     "SectionMajorFixes": "🔧 v2.7 新功能与修复",

@@ -1,7 +1,9 @@
 [h1]DuckovESP - Full-featured Game Enhancement Mod v2.7[/h1]
 [h1]DuckovESP - 全功能游戏增强模组 v2.7[/h1]
-
-A powerful and performance-optimiz[h2]⚠️ Important Tips / ⚠️ 重要提示[/h2]
+A powerful and performance-optimized Duckov game assistance tool
+一个功能强大、性能优化的 Duckov 游戏辅助模组
+[hr][/hr]
+[h2]Main Features / 主要功能[/h2]
 
 [b]Performance Recommendations: / 性能建议：[/b]
 [list]

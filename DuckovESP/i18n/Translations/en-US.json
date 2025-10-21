@@ -225,6 +225,8 @@
     }
   },
   "Welcome": {
+    "ReviewNotice": "⭐⭐⭐⭐⭐ If you like this mod, please leave a 5-star review on Steam!",
+    "FeedbackNotice": "💬 Have questions or suggestions? Please leave a comment, I'll respond ASAP!",
     "Title": "Welcome to DuckovESP v2.7",
     "Subtitle": "🎉 Major Update: Multi-language Support + Internationalized Interface!",
     "SectionMajorFixes": "🔧 v2.7 New Features & Fixes",

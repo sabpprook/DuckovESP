@@ -126,6 +126,31 @@ namespace DuckovESP.UI
         {
             GUILayout.BeginVertical();
             
+            // 好评和反馈提示（最醒目）
+            GUILayout.Space(10);
+            
+            // 好评提示
+            GUIStyle noticeStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 16,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = new Color(1f, 0.85f, 0f) } // 金色
+            };
+            GUILayout.Label(LocalizationManager.Get("Welcome.ReviewNotice"), noticeStyle);
+            GUILayout.Space(5);
+            
+            // 反馈提示
+            GUIStyle feedbackStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = new Color(0.2f, 1f, 0.8f) } // 青绿色
+            };
+            GUILayout.Label(LocalizationManager.Get("Welcome.FeedbackNotice"), feedbackStyle);
+            GUILayout.Space(20);
+            
             // 标题
             GUILayout.Space(10);
             GUILayout.Label(LocalizationManager.Get("Welcome.Title"), _titleStyle);
