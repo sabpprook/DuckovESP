@@ -213,6 +213,19 @@ namespace DuckovESP
             _config.EvacuationIndicatorSize = GUILayout.HorizontalSlider(_config.EvacuationIndicatorSize, 10f, 50f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
+            // 任务区域指示开关
+            GUILayout.Space(5);
+            _config.EnableQuestZoneIndicator = GUILayout.Toggle(_config.EnableQuestZoneIndicator, LocalizationManager.Get("UI.Toggle.EnableQuestZoneIndicator"), _toggleStyle);
+            
+            // 显示任务区域距离
+            _config.ShowQuestZoneDistance = GUILayout.Toggle(_config.ShowQuestZoneDistance, LocalizationManager.Get("UI.Toggle.ShowQuestZoneDistance"), _toggleStyle);
+            
+            // 任务区域指示大小
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(LocalizationManager.Get("UI.Label.QuestZoneIndicatorSizeLabel", ("size", _config.QuestZoneIndicatorSize)), _labelStyle, GUILayout.Width(200));
+            _config.QuestZoneIndicatorSize = GUILayout.HorizontalSlider(_config.QuestZoneIndicatorSize, 10f, 50f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
             GUILayout.Space(10);
             GUILayout.Label(LocalizationManager.Get("UI.Menu.AppearanceSettings"), _labelStyle);
             GUILayout.Space(5);

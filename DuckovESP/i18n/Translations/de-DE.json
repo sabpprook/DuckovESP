@@ -158,7 +158,9 @@
       "TriggerBotTeamCheck": " Teamkameraden überprüfen (Freundschaftsfeuer vermeiden)",
       "EnableNoRecoil": " Kein Rückstoß aktivieren",
       "EnableEvacuationIndicator": " Evakuierungsanzeige aktivieren",
-      "ShowEvacuationDistance": " Evakuierungsentfernung anzeigen"
+      "ShowEvacuationDistance": " Evakuierungsentfernung anzeigen",
+      "EnableQuestZoneIndicator": " Quest-Zonenindikator aktivieren",
+      "ShowQuestZoneDistance": " Quest-Zonendistanz anzeigen"
     },
     "Label": {
       "MaxDisplayDistance": "Maximale Anzeigedistanz",
@@ -202,7 +204,8 @@
       "TriggerBotDelayLabel": "Trigger-Verzögerung: {value:F3}s",
       "NoRecoilTitle": "Beschreibung: Beseitigt allen Waffenrückstoß, Gewehre wackeln nicht beim Schießen",
       "NoRecoilMechanismTitle": "Mechanismus: Ändert die Rückstoßkontrolle des Charakters und Waffeneigenschaften",
-      "EvacuationIndicatorSizeLabel": "Größe der Evakuierungsanzeige: {size}"
+      "EvacuationIndicatorSizeLabel": "Größe der Evakuierungsanzeige: {size}",
+      "QuestZoneIndicatorSizeLabel": "Größe des Quest-Zonenindikators: {size}"
     },
     "CheatKeys": {
       "GodMode": "• Shift + F7 = Unsterblichkeitsmodus (Volle Gesundheit behalten)",

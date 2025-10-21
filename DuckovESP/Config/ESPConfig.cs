@@ -77,6 +77,12 @@ namespace DuckovESP
         public float EvacuationIndicatorSize = 20f; // 撤离点指示大小
         public bool ShowEvacuationDistance = true; // 显示到撤离点的距离
         
+        // 任务区域指示设置
+        public bool EnableQuestZoneIndicator = true; // 启用任务区域指示
+        public Color QuestZoneIndicatorColor = Color.yellow; // 任务区域指示颜色
+        public float QuestZoneIndicatorSize = 20f; // 任务区域指示大小
+        public bool ShowQuestZoneDistance = true; // 显示到任务区域的距离
+        
         // 任务物品和建筑材料标记
         public bool HighlightQuestItems = true; // 高亮任务物品
         public bool HighlightBuildingMaterials = true; // 高亮建筑材料

@@ -158,7 +158,9 @@
       "TriggerBotTeamCheck": " Check Teammates (Avoid Friendly Fire)",
       "EnableNoRecoil": " Enable No Recoil",
       "EnableEvacuationIndicator": " Enable Evacuation Indicator",
-      "ShowEvacuationDistance": " Show Evacuation Distance"
+      "ShowEvacuationDistance": " Show Evacuation Distance",
+      "EnableQuestZoneIndicator": " Enable Quest Zone Indicator",
+      "ShowQuestZoneDistance": " Show Quest Zone Distance"
     },
     "Label": {
       "MaxDisplayDistance": "Max Display Distance",
@@ -202,7 +204,8 @@
       "TriggerBotDelayLabel": "Trigger Delay: {value:F3}s",
       "NoRecoilTitle": "Description: Eliminate all weapon recoil, guns won't shake when firing",
       "NoRecoilMechanismTitle": "Mechanism: Modify character recoil control and weapon properties",
-      "EvacuationIndicatorSizeLabel": "Evacuation Indicator Size: {size}"
+      "EvacuationIndicatorSizeLabel": "Evacuation Indicator Size: {size}",
+      "QuestZoneIndicatorSizeLabel": "Quest Zone Indicator Size: {size}"
     },
     "CheatKeys": {
       "GodMode": "• Shift + F7 = God Mode (Keep full health)",

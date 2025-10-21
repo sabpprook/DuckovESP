@@ -158,7 +158,9 @@
       "TriggerBotTeamCheck": " 检查队友（避免误伤）",
       "EnableNoRecoil": " 启用无后座力",
       "EnableEvacuationIndicator": " 启用撤离点指示",
-      "ShowEvacuationDistance": " 显示到撤离点的距离"
+      "ShowEvacuationDistance": " 显示到撤离点的距离",
+      "EnableQuestZoneIndicator": " 启用任务区域指示",
+      "ShowQuestZoneDistance": " 显示到任务区域的距离"
     },
     "Label": {
       "MaxDisplayDistance": "最大显示距离",
@@ -202,7 +204,8 @@
       "TriggerBotDelayLabel": "触发延迟: {value:F3}秒",
       "NoRecoilTitle": "说明: 消除所有武器的后座力，射击时枪械不会抖动",
       "NoRecoilMechanismTitle": "工作原理: 修改角色后座力控制和武器属性",
-      "EvacuationIndicatorSizeLabel": "撤离点指示大小: {size}"
+      "EvacuationIndicatorSizeLabel": "撤离点指示大小: {size}",
+      "QuestZoneIndicatorSizeLabel": "任务区域指示大小: {size}"
     },
     "CheatKeys": {
       "GodMode": "• Shift + F7 = 无敌模式（保持满血）",

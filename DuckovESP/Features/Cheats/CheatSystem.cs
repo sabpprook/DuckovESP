@@ -5,6 +5,7 @@ using UnityEngine;
 using DuckovESP.Utils.Localization;
 using System.Collections.Generic;
 using Duckov.MiniMaps;
+using Duckov.Quests;
 
 namespace DuckovESP
 {
@@ -48,6 +49,11 @@ namespace DuckovESP
         // 【优化】撤离点缓存 - 避免每帧 FindObjectsOfType 扫描
         private List<(Vector3 position, float distance)> _cachedEvacuationPoints = new List<(Vector3, float)>();
         private bool _evacuationPointsCached = false;
+
+        // 【新增】任务区域缓存
+        private Dictionary<MonoBehaviour, QuestZoneMarkerData> _trackedQuestZones = 
+            new Dictionary<MonoBehaviour, QuestZoneMarkerData>();
+        private bool _questZonesCached = false;
 
         // 速度倍数
         private const float SPEED_MULTIPLIER = 2.5f;
@@ -684,6 +690,646 @@ namespace DuckovESP
         }
 
         /// <summary>
+        /// 获取所有追踪的任务区域
+        /// 每2秒扫描一次以发现新的任务
+        /// </summary>
+        public Dictionary<MonoBehaviour, QuestZoneMarkerData> GetQuestZones()
+        {
+            // 仅在关卡初始化时扫描一次任务区域
+            if (!_questZonesCached)
+            {
+                ScanQuestZones();
+                _questZonesCached = true;
+                Debug.Log("[DuckovESP] ✓ 任务区域初始化扫描完成");
+            }
+
+            // 更新现有任务的距离和进度
+            try
+            {
+                CharacterMainControl player = CharacterMainControl.Main;
+                if (player != null)
+                {
+                    Vector3 playerPos = player.transform.position;
+                    foreach (var kvp in _trackedQuestZones)
+                    {
+                        if (kvp.Key != null && kvp.Value != null)
+                        {
+                            QuestZoneMarkerData data = kvp.Value;
+                            data.distance = Vector3.Distance(playerPos, data.centerPosition);
+                            
+                            // 更新任务的活跃状态
+                            if (kvp.Key.gameObject.activeInHierarchy != data.isActive)
+                            {
+                                data.isActive = kvp.Key.gameObject.activeInHierarchy;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 更新任务区域失败 - {ex.Message}");
+            }
+
+            return _trackedQuestZones;
+        }
+
+        /// <summary>
+        /// 扫描并缓存所有任务区域
+        /// 【优化】仅在关卡初始化时扫描一次，不再定期扫描
+        /// 支持多种任务类型: QuestTask_ReachLocation, SubmitItems, QuestTask_TaskEvent
+        /// </summary>
+#pragma warning disable IL2087, IL2075
+        private void ScanQuestZones()
+        {
+            try
+            {
+                CharacterMainControl player = CharacterMainControl.Main;
+                if (player == null)
+                    return;
+
+                Vector3 playerPos = player.transform.position;
+                var allMonoBehaviours = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
+                var questTasks = new Dictionary<MonoBehaviour, string>(); // 组件 -> 类型名
+                
+                // 步骤 1: 收集所有任务相关的组件
+                foreach (var mono in allMonoBehaviours)
+                {
+                    string typeName = mono.GetType().Name;
+                    // 支持 QuestTask_ReachLocation 和 QuestTask_TaskEvent
+                    if (typeName == "QuestTask_ReachLocation" || typeName == "QuestTask_TaskEvent")
+                    {
+                        questTasks[mono] = typeName;
+                    }
+                }
+                
+                Debug.Log($"[DuckovESP] 扫描到 {questTasks.Count} 个任务组件");
+                
+                if (questTasks.Count == 0)
+                {
+                    Debug.Log("[DuckovESP] 未找到任何任务区域");
+                    return;
+                }
+                
+                int successCount = 0;
+                
+                foreach (var (taskComponent, taskType) in questTasks)
+                {
+                    if (taskComponent == null)
+                        continue;
+                    
+                    try
+                    {
+                        // 步骤 2: 获取任务名称（所有任务类型通用）
+                        string taskName = taskComponent.gameObject.name;
+                        var masterProperty = taskComponent.GetType().BaseType.GetProperty("Master",
+                            BindingFlags.Public | BindingFlags.Instance);
+                        
+                        if (masterProperty != null)
+                        {
+                            var masterObj = masterProperty.GetValue(taskComponent);
+                            if (masterObj != null)
+                            {
+                                Type masterObjType = masterObj.GetType();
+                                var displayNameProp = masterObjType.GetProperty("DisplayName");
+                                if (displayNameProp != null)
+                                {
+                                    taskName = (string)displayNameProp.GetValue(masterObj);
+                                }
+                            }
+                        }
+                        
+                        Vector3 position = Vector3.zero;
+                        float radius = 5f;
+                        bool positionFound = false;
+                        
+                        // 步骤 3: 根据任务类型提取位置信息
+                        if (taskType == "QuestTask_ReachLocation")
+                        {
+                            positionFound = TryExtractReachLocationPosition(taskComponent, out position, out radius);
+                        }
+                        else if (taskType == "QuestTask_TaskEvent")
+                        {
+                            positionFound = TryExtractTaskEventPosition(taskComponent, out position, out radius);
+                        }
+                        else if (taskType == "SubmitItems")
+                        {
+                            positionFound = TryExtractMapElementPosition(taskComponent, out position, out radius);
+                        }
+                        
+                        if (!positionFound)
+                        {
+                            // 添加详细诊断信息
+                            if (taskType == "QuestTask_ReachLocation")
+                            {
+                                // 诊断 ReachLocation 失败原因
+                                var locationField = taskComponent.GetType().GetField("location", 
+                                    BindingFlags.NonPublic | BindingFlags.Instance);
+                                if (locationField != null)
+                                {
+                                    var locationObj = locationField.GetValue(taskComponent);
+                                    if (locationObj == null)
+                                        Debug.Log($"[DuckovESP] 诊断: ReachLocation.location 为 null");
+                                    else
+                                        Debug.Log($"[DuckovESP] 诊断: ReachLocation.location 存在但无法提取坐标");
+                                }
+                            }
+                            else if (taskType == "SubmitItems" || taskType == "QuestTask_TaskEvent")
+                            {
+                                // 诊断 mapElement 失败原因
+                                var mapElementField = taskComponent.GetType().GetField("mapElement",
+                                    BindingFlags.NonPublic | BindingFlags.Instance);
+                                if (mapElementField != null)
+                                {
+                                    var mapElement = mapElementField.GetValue(taskComponent);
+                                    if (mapElement == null)
+                                        Debug.Log($"[DuckovESP] 诊断: {taskType}.mapElement 为 null");
+                                    else
+                                        Debug.Log($"[DuckovESP] 诊断: {taskType}.mapElement 存在但无法提取坐标");
+                                }
+                                else
+                                    Debug.Log($"[DuckovESP] 诊断: {taskType} 无 mapElement 字段");
+                            }
+                            continue;
+                        }
+                        
+                        // 步骤 4: 检查任务完成状态，只显示未完成的任务
+                        bool isFinished = IsTaskFinished(taskComponent);
+                        if (isFinished)
+                        {
+                            Debug.Log($"[DuckovESP] 任务已完成，跳过: '{taskName}'");
+                            continue;
+                        }
+                        
+                        successCount++;
+                        Debug.Log($"[DuckovESP] ✓ 发现任务区域 #{successCount}: '{taskName}' ({taskType})");
+                        Debug.Log($"[DuckovESP]   位置: {position}, 半径: {radius}");
+                        
+                        // 创建标记数据
+                        QuestZoneMarkerData markerData = new QuestZoneMarkerData
+                        {
+                            countDownArea = null,
+                            locationMarker = null,
+                            triggerCollider = null,
+                            displayName = taskName,
+                            centerPosition = position,
+                            radius = radius > 0 ? radius : 5f,
+                            requiredTime = 0f,
+                            isActive = taskComponent.gameObject.activeInHierarchy,
+                            progress = 0f,
+                            remainingTime = 0f,
+                            distance = Vector3.Distance(playerPos, position)
+                        };
+                        
+                        // 用任务组件作为字典的键
+                        _trackedQuestZones[taskComponent] = markerData;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[DuckovESP] 处理任务组件失败: {ex.Message}");
+                    }
+                }
+                
+                Debug.Log($"[DuckovESP] ═══ 扫描完成 ═══ 找到 {questTasks.Count} 个任务组件，成功解析 {successCount} 个");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 扫描任务区域失败 - {ex.Message}\n{ex.StackTrace}");
+            }
+#pragma warning restore IL2087, IL2075
+        }
+        
+        /// <summary>
+        /// 从 QuestTask_ReachLocation 提取位置信息
+        /// </summary>
+#pragma warning disable IL2087, IL2075
+        private bool TryExtractReachLocationPosition(MonoBehaviour taskComponent, out Vector3 position, out float radius)
+        {
+            position = Vector3.zero;
+            radius = 5f;
+            
+            // 【方案 1】直接从 target Transform 获取位置（最快）
+            var targetField = taskComponent.GetType().GetField("target",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            if (targetField != null)
+            {
+                try
+                {
+                    var targetTransform = targetField.GetValue(taskComponent) as Transform;
+                    if (targetTransform != null)
+                    {
+                        position = targetTransform.position;
+                        
+                        // 获取 radius 字段
+                        var radiusField = taskComponent.GetType().GetField("radius",
+                            BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (radiusField != null)
+                        {
+                            radius = (float)radiusField.GetValue(taskComponent);
+                        }
+                        Debug.Log($"[DuckovESP] ✓ 从 target Transform 成功提取坐标: {position}");
+                        return true;
+                    }
+                }
+                catch { }
+            }
+            
+            // 【方案 2】通过 GetLocationTransform() 获取位置
+            var locationField = taskComponent.GetType().GetField("location", 
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            if (locationField != null)
+            {
+                try
+                {
+                    var locationObj = locationField.GetValue(taskComponent);
+                    if (locationObj != null)
+                    {
+                        Debug.Log($"[DuckovESP] 调试: location 对象存在，类型={locationObj.GetType().Name}");
+                        
+                        var getLocationTransformMethod = locationObj.GetType().GetMethod("GetLocationTransform",
+                            BindingFlags.Public | BindingFlags.Instance);
+                        if (getLocationTransformMethod != null)
+                        {
+                            var targetTransform = getLocationTransformMethod.Invoke(locationObj, null) as Transform;
+                            if (targetTransform != null)
+                            {
+                                position = targetTransform.position;
+                                
+                                // 获取 radius 字段
+                                var radiusField = taskComponent.GetType().GetField("radius",
+                                    BindingFlags.NonPublic | BindingFlags.Instance);
+                                if (radiusField != null)
+                                {
+                                    radius = (float)radiusField.GetValue(taskComponent);
+                                }
+                                Debug.Log($"[DuckovESP] ✓ 从 GetLocationTransform() 成功提取坐标: {position}");
+                                return true;
+                            }
+                            else
+                            {
+                                Debug.Log($"[DuckovESP] 调试: GetLocationTransform() 返回 null");
+                            }
+                        }
+                        else
+                        {
+                            Debug.Log($"[DuckovESP] 调试: location 对象没有 GetLocationTransform() 方法");
+                        }
+                    }
+                }
+                catch (Exception ex) 
+                { 
+                    Debug.Log($"[DuckovESP] 调试: 方案2异常 - {ex.Message}");
+                }
+            }
+            
+            // 【方案 3】通过 TryGetLocationPosition() 获取位置
+            if (locationField != null)
+            {
+                try
+                {
+                    var locationObj = locationField.GetValue(taskComponent);
+                    if (locationObj != null)
+                    {
+                        Type locationObjType = locationObj.GetType();
+                        var tryGetPositionMethod = locationObjType.GetMethod("TryGetLocationPosition",
+                            BindingFlags.Public | BindingFlags.Instance);
+                        
+                        if (tryGetPositionMethod != null)
+                        {
+                            Vector3 tempPos = Vector3.zero;
+                            var parameters = new object[] { tempPos };
+                            bool success = (bool)tryGetPositionMethod.Invoke(locationObj, parameters);
+                            if (success)
+                            {
+                                position = (Vector3)parameters[0];
+                                
+                                // 获取 radius 字段
+                                var radiusField = taskComponent.GetType().GetField("radius",
+                                    BindingFlags.NonPublic | BindingFlags.Instance);
+                                if (radiusField != null)
+                                {
+                                    radius = (float)radiusField.GetValue(taskComponent);
+                                }
+                                Debug.Log($"[DuckovESP] ✓ 从 TryGetLocationPosition() 成功提取坐标: {position}");
+                                return true;
+                            }
+                            else
+                            {
+                                Debug.Log($"[DuckovESP] 调试: TryGetLocationPosition() 返回 false");
+                            }
+                        }
+                        else
+                        {
+                            Debug.Log($"[DuckovESP] 调试: location 对象没有 TryGetLocationPosition() 方法");
+                        }
+                    }
+                }
+                catch (Exception ex) 
+                { 
+                    Debug.Log($"[DuckovESP] 调试: 方案3异常 - {ex.Message}");
+                }
+            }
+            
+            return false;
+        }
+#pragma warning restore IL2087, IL2075
+        
+        /// <summary>
+        /// 从 mapElement (MapElementForTask) 提取位置信息
+        /// 用于 SubmitItems 和 QuestTask_TaskEvent
+        /// </summary>
+#pragma warning disable IL2087, IL2075
+        private bool TryExtractMapElementPosition(MonoBehaviour taskComponent, out Vector3 position, out float radius)
+        {
+            position = Vector3.zero;
+            radius = 5f;
+            
+            // 获取 mapElement 字段
+            var mapElementField = taskComponent.GetType().GetField("mapElement",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            if (mapElementField == null)
+                return false;
+            
+            var mapElement = mapElementField.GetValue(taskComponent);
+            if (mapElement == null)
+                return false;
+            
+            // 尝试从 mapElement.locations[] 获取位置
+            var locationsProperty = mapElement.GetType().GetProperty("locations",
+                BindingFlags.Public | BindingFlags.Instance);
+            if (locationsProperty == null)
+                return false;
+            
+            var locationsList = locationsProperty.GetValue(mapElement);
+            if (locationsList == null)
+                return false;
+            
+            // 获取 List 的 Count
+            var countProp = locationsList.GetType().GetProperty("Count");
+            if (countProp == null)
+                return false;
+            
+            int count = (int)countProp.GetValue(locationsList);
+            if (count == 0)
+                return false;
+            
+            // 获取第一个位置
+            var indexer = locationsList.GetType().GetProperty("Item",
+                BindingFlags.Public | BindingFlags.Instance);
+            if (indexer == null)
+                return false;
+            
+            var firstLocation = indexer.GetValue(locationsList, new object[] { 0 });
+            if (firstLocation == null)
+                return false;
+            
+            // 从第一个位置提取坐标
+            Type locationObjType = firstLocation.GetType();
+            var tryGetPositionMethod = locationObjType.GetMethod("TryGetLocationPosition",
+                BindingFlags.Public | BindingFlags.Instance);
+            
+            if (tryGetPositionMethod != null)
+            {
+                Vector3 tempPos = Vector3.zero;
+                var parameters = new object[] { tempPos };
+                bool success = (bool)tryGetPositionMethod.Invoke(firstLocation, parameters);
+                if (success)
+                {
+                    position = (Vector3)parameters[0];
+                    
+                    // 获取 range 字段
+                    var rangeProperty = mapElement.GetType().GetProperty("range",
+                        BindingFlags.Public | BindingFlags.Instance);
+                    if (rangeProperty != null)
+                    {
+                        radius = (float)rangeProperty.GetValue(mapElement);
+                    }
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+#pragma warning restore IL2087, IL2075
+        
+        /// <summary>
+        /// 从 QuestTask_TaskEvent 的 gameObject 中获取 SpawnPrefabForTask 组件
+        /// 从 SpawnPrefabForTask.locations 列表中提取实际的地址信息
+        /// </summary>
+#pragma warning disable IL2087, IL2075
+        private bool TryExtractTaskEventPosition(MonoBehaviour taskComponent, out Vector3 position, out float radius)
+        {
+            position = Vector3.zero;
+            radius = 5f;
+            bool foundPosition = false;
+            
+            try
+            {
+                // 步骤 1: 从 TaskEvent 的 gameObject 获取 SpawnPrefabForTask 组件
+                var gameObject = taskComponent.gameObject;
+                if (gameObject == null)
+                {
+                    Debug.Log($"[DuckovESP] 调试: TaskEvent 的 gameObject 为 null");
+                    return false;
+                }
+                
+                // 获取所有组件
+                var components = gameObject.GetComponents<MonoBehaviour>();
+                MonoBehaviour spawnPrefabForTask = null;
+                
+                foreach (var component in components)
+                {
+                    if (component.GetType().Name == "SpawnPrefabForTask")
+                    {
+                        spawnPrefabForTask = component;
+                        Debug.Log($"[DuckovESP] ✓ 找到 SpawnPrefabForTask 组件");
+                        break;
+                    }
+                }
+                
+                if (spawnPrefabForTask == null)
+                {
+                    Debug.Log($"[DuckovESP] 调试: TaskEvent.gameObject 没有 SpawnPrefabForTask 组件");
+                    return false;
+                }
+                
+                // 步骤 2: 从 SpawnPrefabForTask 获取 locations 字段
+                var locationsField = spawnPrefabForTask.GetType().GetField("locations",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                
+                if (locationsField == null)
+                {
+                    Debug.Log($"[DuckovESP] 调试: SpawnPrefabForTask 没有 locations 字段");
+                    return false;
+                }
+                
+                var locationsList = locationsField.GetValue(spawnPrefabForTask);
+                if (locationsList == null)
+                {
+                    Debug.Log($"[DuckovESP] 调试: SpawnPrefabForTask.locations 为 null");
+                    return false;
+                }
+                
+                // 步骤 3: 获取 List 的 Count
+                var countProp = locationsList.GetType().GetProperty("Count");
+                if (countProp == null)
+                {
+                    Debug.Log($"[DuckovESP] 调试: locations List 没有 Count 属性");
+                    return false;
+                }
+                
+                int count = (int)countProp.GetValue(locationsList);
+                if (count == 0)
+                {
+                    Debug.Log($"[DuckovESP] 调试: SpawnPrefabForTask.locations 为空");
+                    return false;
+                }
+                
+                Debug.Log($"[DuckovESP] SpawnPrefabForTask.locations 中找到 {count} 个位置");
+                
+                // 步骤 4: 获取第一个位置并提取坐标
+                var indexer = locationsList.GetType().GetProperty("Item",
+                    BindingFlags.Public | BindingFlags.Instance);
+                
+                if (indexer == null)
+                {
+                    Debug.Log($"[DuckovESP] 调试: locations List 没有索引器");
+                    return false;
+                }
+                
+                var firstLocation = indexer.GetValue(locationsList, new object[] { 0 });
+                if (firstLocation == null)
+                {
+                    Debug.Log($"[DuckovESP] 调试: locations[0] 为 null");
+                    return false;
+                }
+                
+                // 步骤 5: 从第一个位置提取坐标
+                Type locationObjType = firstLocation.GetType();
+                var tryGetPositionMethod = locationObjType.GetMethod("TryGetLocationPosition",
+                    BindingFlags.Public | BindingFlags.Instance);
+                
+                if (tryGetPositionMethod == null)
+                {
+                    Debug.Log($"[DuckovESP] 调试: MultiSceneLocation 没有 TryGetLocationPosition 方法");
+                    return false;
+                }
+                
+                Vector3 tempPos = Vector3.zero;
+                var parameters = new object[] { tempPos };
+                bool success = (bool)tryGetPositionMethod.Invoke(firstLocation, parameters);
+                
+                if (success)
+                {
+                    position = (Vector3)parameters[0];
+                    Debug.Log($"[DuckovESP] ✓ 从 SpawnPrefabForTask.locations[0] 成功提取坐标: {position}");
+                    
+                    // 尝试从 SpawnPrefabForTask 获取 radius 字段
+                    var radiusField = spawnPrefabForTask.GetType().GetField("radius",
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (radiusField != null)
+                    {
+                        radius = (float)radiusField.GetValue(spawnPrefabForTask);
+                        Debug.Log($"[DuckovESP] SpawnPrefabForTask.radius = {radius}");
+                    }
+                    
+                    foundPosition = true;
+                }
+                else
+                {
+                    Debug.Log($"[DuckovESP] 调试: SpawnPrefabForTask.locations[0].TryGetLocationPosition() 返回 false");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"[DuckovESP] 调试: TaskEvent SpawnPrefabForTask 提取异常 - {ex.Message}");
+            }
+            
+            if (foundPosition)
+            {
+                return true;
+            }
+            
+            // 如果 SpawnPrefabForTask 提取失败，尝试降级到 mapElement 提取
+            Debug.Log($"[DuckovESP] 调试: TaskEvent 所有方法都失败，尝试降级到 mapElement 提取");
+            return TryExtractMapElementPosition(taskComponent, out position, out radius);
+        }
+#pragma warning restore IL2087, IL2075
+        
+        /// <summary>
+        /// 检查任务是否已完成
+        /// </summary>
+        private bool IsTaskFinished(MonoBehaviour taskComponent)
+        {
+            try
+            {
+                // 所有任务类型都继承自 Task 基类，检查 finished 字段或通过 IsFinished() 方法
+                
+                // 先尝试通过反射调用 IsFinished() 方法（如果是 public）
+                var isFinishedMethod = taskComponent.GetType().GetMethod("IsFinished",
+                    BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.Instance);
+                if (isFinishedMethod != null)
+                {
+                    return (bool)isFinishedMethod.Invoke(taskComponent, null);
+                }
+                
+                // 如果 IsFinished() 不可用，尝试访问 finished 字段
+                var finishedField = taskComponent.GetType().GetField("finished",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                if (finishedField != null)
+                {
+                    return (bool)finishedField.GetValue(taskComponent);
+                }
+                
+                // 默认返回 false（认为任务未完成）
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 根据碰撞体类型计算任务区域的半径
+        /// </summary>
+        private float GetQuestZoneRadius(Collider collider)
+        {
+            if (collider == null)
+                return 5f;
+            
+            try
+            {
+                // 根据碰撞体类型计算半径
+                if (collider is SphereCollider sphereCollider)
+                {
+                    return sphereCollider.radius * collider.transform.lossyScale.x;
+                }
+                else if (collider is CapsuleCollider capsuleCollider)
+                {
+                    return capsuleCollider.radius * Mathf.Max(collider.transform.lossyScale.x, 
+                                                               collider.transform.lossyScale.z);
+                }
+                else if (collider is BoxCollider boxCollider)
+                {
+                    Vector3 size = boxCollider.size;
+                    float maxSize = Mathf.Max(size.x, size.z);
+                    return maxSize * 0.5f * Mathf.Max(collider.transform.lossyScale.x, 
+                                                      collider.transform.lossyScale.z);
+                }
+                else
+                {
+                    // 其他类型的碰撞体，使用bounds计算
+                    return collider.bounds.extents.magnitude;
+                }
+            }
+            catch
+            {
+                return collider.bounds.extents.magnitude;
+            }
+        }
+
+        /// <summary>
         /// 当关卡卸载时重置
         /// </summary>
         public void OnLevelUnload()
@@ -694,6 +1340,10 @@ namespace DuckovESP
             // 【优化】重置撤离点缓存，下次关卡加载时重新扫描
             _evacuationPointsCached = false;
             _cachedEvacuationPoints.Clear();
+            
+            // 【新增】重置任务区域缓存
+            _questZonesCached = false;
+            _trackedQuestZones.Clear();
             
             // 恢复所有武器的伤害
             RestoreOriginalDamage();

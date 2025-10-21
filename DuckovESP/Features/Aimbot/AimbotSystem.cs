@@ -187,12 +187,6 @@ namespace DuckovESP
             // 自动扳机（必须在自动瞄准启用时才工作）
             if (_config.EnableTriggerBot && _config.EnableAimbot)
             {
-                // 检查是否有武器
-                if (_trackedGun == null && !_triggerBotLoggedOnce)
-                {
-                    Debug.Log("[TriggerBot] 警告: 没有持有武器");
-                }
-                
                 PerformTriggerBot();
             }
             else
@@ -571,11 +565,6 @@ namespace DuckovESP
                             }
                         }
                     }
-                }
-                
-                if (teleportedCount > 0)
-                {
-                    Debug.Log($"[Aimbot] TriggerBot传送模式: 已传送 {teleportedCount} 发子弹到目标附近");
                 }
             }
             catch (Exception ex)
@@ -1137,9 +1126,6 @@ namespace DuckovESP
             // 首次启动时记录
             if (!_triggerBotLoggedOnce)
             {
-                Debug.Log($"[TriggerBot] 已启动 - 仅瞄准触发: {_config.TriggerBotOnlyADS}, 延迟: {_config.TriggerBotDelay}s");
-                Debug.Log($"[TriggerBot] 使用自动瞄准的目标检测系统");
-                Debug.Log($"[TriggerBot] 基地保护：在基地内禁用自动扳机");
                 _triggerBotLoggedOnce = true;
             }
             
@@ -1176,24 +1162,10 @@ namespace DuckovESP
             // 使用自动瞄准找到的最佳目标
             bool currentTargetInSight = (_lastBestTarget.Receiver != null);
             
-            // 详细调试：输出目标状态
-            if (UnityEngine.Random.value < 0.05f) // 5% 概率输出，避免刷屏
-            {
-                if (_lastBestTarget.Receiver != null)
-                {
-                    Debug.Log($"[TriggerBot] 当前目标: {_lastBestTarget.Receiver.name}, RequiresPenetration={_lastBestTarget.RequiresPenetration}, IgnoreWalls={_config.AimbotIgnoreWalls}");
-                }
-                else
-                {
-                    Debug.Log($"[TriggerBot] 无目标 (_lastBestTarget.Receiver == null)");
-                }
-            }
-            
             // TriggerBot 遵守 AimbotIgnoreWalls 设置
             // 如果目标被墙遮挡且不允许穿墙，则不触发
             if (currentTargetInSight && _lastBestTarget.RequiresPenetration && !_config.AimbotIgnoreWalls)
             {
-                Debug.Log($"[TriggerBot] 目标被墙遮挡，不触发 (RequiresPenetration={_lastBestTarget.RequiresPenetration}, IgnoreWalls={_config.AimbotIgnoreWalls})");
                 currentTargetInSight = false;
             }
             
@@ -1201,15 +1173,7 @@ namespace DuckovESP
             // 如果你想让 TriggerBot 也能穿墙，注释掉下面这段
             if (currentTargetInSight && _lastBestTarget.RequiresPenetration)
             {
-                Debug.Log($"[TriggerBot] 目标被墙遮挡，TriggerBot 不穿墙射击");
                 currentTargetInSight = false;
-            }
-            
-            // 调试输出
-            if (currentTargetInSight && !_targetInSight)
-            {
-                string wallStatus = _lastBestTarget.RequiresPenetration ? " [穿墙]" : " [无遮挡]";
-                Debug.Log($"[TriggerBot] 检测到目标: {_lastBestTarget.Receiver.name}, 距离: {_lastBestTarget.RayDistance:F1}m{wallStatus}");
             }
             
             // 检测到新目标
@@ -1223,7 +1187,6 @@ namespace DuckovESP
             {
                 _targetInSight = false;
                 _triggerDelayTimer = 0f;
-                Debug.Log("[TriggerBot] 目标消失");
             }
             
             // 更新延迟计时器
@@ -1284,7 +1247,6 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[TriggerBot] 检测目标时出错 - {ex.Message}");
                 return null;
             }
         }
@@ -1298,20 +1260,16 @@ namespace DuckovESP
             {
                 if (_trackedGun == null)
                 {
-                    Debug.Log("DuckovESP TriggerBot: 没有持有武器");
                     return;
                 }
                 
                 // 使用游戏的 SetTrigger 方法来模拟射击
                 // SetTrigger(bool trigger, bool triggerThisFrame, bool releaseThisFrame)
                 _trackedGun.SetTrigger(true, true, false);
-                
-                Debug.Log($"DuckovESP TriggerBot: 触发射击");
-                
             }
             catch (Exception ex)
             {
-                Debug.LogError($"DuckovESP TriggerBot: 射击时出错 - {ex.Message}\n{ex.StackTrace}");
+                // 忽略射击错误
             }
         }
         
@@ -1348,7 +1306,7 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[TriggerBot] 射击失败: {ex.Message}");
+                // 忽略射击错误
             }
         }
         
@@ -1367,13 +1325,12 @@ namespace DuckovESP
                 if (shootMethod != null)
                 {
                     shootMethod.Invoke(_trackedGun, null);
-                    Debug.Log("[TriggerBot] 使用 Shoot() 方法射击");
                     return;
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[TriggerBot] Shoot 方法调用失败: {ex.Message}");
+                // 忽略错误
             }
             
             // 方法2: 尝试 Fire 方法
@@ -1384,13 +1341,12 @@ namespace DuckovESP
                 if (fireMethod != null)
                 {
                     fireMethod.Invoke(_trackedGun, null);
-                    Debug.Log("[TriggerBot] 使用 Fire() 方法射击");
                     return;
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[TriggerBot] Fire 方法调用失败: {ex.Message}");
+                // 忽略错误
             }
             
             // 方法3: 尝试 OnShoot 方法
@@ -1401,13 +1357,12 @@ namespace DuckovESP
                 if (onShootMethod != null)
                 {
                     onShootMethod.Invoke(_trackedGun, null);
-                    Debug.Log("[TriggerBot] 使用 OnShoot() 方法射击");
                     return;
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[TriggerBot] OnShoot 方法调用失败: {ex.Message}");
+                // 忽略错误
             }
             
             // 方法4: 尝试使用 SetTrigger（持续按住）
@@ -1430,15 +1385,10 @@ namespace DuckovESP
                 // 设置扳机状态：持续按下
                 _trackedGun.SetTrigger(true, justPressed, false);
                 _lastTriggerState = true;
-                
-                if (justPressed)
-                {
-                    Debug.Log("[TriggerBot] 按下扳机");
-                }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[TriggerBot] HoldTrigger 出错: {ex.Message}");
+                // 忽略错误
             }
         }
         
@@ -1459,15 +1409,10 @@ namespace DuckovESP
                 _trackedGun.SetTrigger(false, false, justReleased);
                 _lastTriggerState = false;
                 _continuousFireTimer = 0f;
-                
-                if (justReleased)
-                {
-                    Debug.Log("[TriggerBot] 释放扳机");
-                }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[TriggerBot] ReleaseTrigger 出错: {ex.Message}");
+                // 忽略错误
             }
         }
         
@@ -1485,7 +1430,6 @@ namespace DuckovESP
                 // 精确匹配基地场景名称
                 if (sceneName == "Base_SceneV2")
                 {
-                    Debug.Log("[TriggerBot] 玩家在基地内 (Base_SceneV2)，禁用自动扳机");
                     return true;
                 }
                 
@@ -1493,7 +1437,6 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[TriggerBot] 基地检测失败: {ex.Message}");
                 return false; // 出错时允许触发，避免功能失效
             }
         }

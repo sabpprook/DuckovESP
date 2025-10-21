@@ -27,6 +27,9 @@ namespace DuckovESP
         // 追踪的世界物品和标记
         private readonly Dictionary<DuckovItemAgent, GameObject> _trackedWorldItems = new Dictionary<DuckovItemAgent, GameObject>();
         
+        // 追踪的任务区域标记
+        private readonly Dictionary<string, GameObject> _questZoneMarkerCache = new Dictionary<string, GameObject>();
+        
         // 3D ESP缓存数据
         private readonly List<ESPData> _espDataCache = new List<ESPData>(100);
         private float _espCacheTimer = 0f;
@@ -585,7 +588,14 @@ namespace DuckovESP
             // 绘制撤离点指示（使用GL渲染）
             if (LevelManager.LevelInited && _config.EnableEvacuationIndicator && !isInBase && _mainCamera != null)
             {
-                // GL绘制在OnPostRender中处理
+                // GL绘制在OnRenderObject中处理，文字在这里绘制
+                DrawEvacuationIndicatorsText();
+            }
+            
+            // 绘制任务区域指示（文字部分）
+            if (LevelManager.LevelInited && _config.EnableQuestZoneIndicator && !isInBase && _mainCamera != null)
+            {
+                DrawQuestZoneIndicatorsText();
             }
             
             // 基地内不显示 ESP
@@ -655,6 +665,12 @@ namespace DuckovESP
             if (_config.EnableEvacuationIndicator && !isInBase)
             {
                 DrawEvacuationIndicatorsGL();
+            }
+            
+            // 绘制任务区域指示（GL渲染）
+            if (_config.EnableQuestZoneIndicator && !isInBase)
+            {
+                DrawQuestZoneIndicatorsGL();
             }
             
             // 绘制敌人连线
@@ -937,8 +953,9 @@ namespace DuckovESP
                 float screenHeight = Screen.height;
                 
                 // 屏幕边缘的安全距离
-                const float edgeMargin = 40f;
-                const float arrowSize = 20f;
+                const float edgeMargin = 60f;
+                // 箭头大小扩大为40像素（从20）
+                const float arrowSize = 40f;
 
                 foreach (var (evacPoint, distance) in evacuationPoints)
                 {
@@ -959,7 +976,7 @@ namespace DuckovESP
                         }
                         else
                         {
-                            // 在屏幕外，绘制在边缘的箭头指向
+                            // 在屏幕外，绘制在边缘的箭头指向（不受距离限制）
                             DrawEvacuationArrowGL(new Vector2(screenPos.x, screenPos.y), 
                                                new Vector2(screenWidth, screenHeight), 
                                                edgeMargin, arrowSize, distance);
@@ -979,23 +996,14 @@ namespace DuckovESP
         private void DrawEvacuationCircleGL(Vector2 screenPos, float distance)
         {
             float size = _config.EvacuationIndicatorSize;
+            // 扩大圆形尺寸：最小30像素，最大150像素（基于配置）
+            float radiusPixels = Mathf.Clamp(size * 3, 30f, 150f);
             Color color = _config.EvacuationIndicatorColor;
             
             // 绘制圆形边框（使用GL.LINE_STRIP）
-            DrawCircleGL(screenPos, size / 2, color, 16); // 16个顶点的圆
+            DrawCircleGL(screenPos, radiusPixels, color, 24); // 增加到24个顶点的圆用于平滑效果
             
-            // 绘制距离信息（文字需要在OnGUI中，这里用小圆点标记）
-            if (_config.ShowEvacuationDistance)
-            {
-                // 在圆下方绘制数值距离标记
-                var labelStyle = new GUIStyle(GUI.skin.label);
-                labelStyle.fontSize = 10;
-                labelStyle.normal.textColor = color;
-                labelStyle.alignment = TextAnchor.UpperCenter;
-                
-                GUI.Label(new Rect(screenPos.x - 30, screenPos.y + size / 2 + 5, 60, 20), 
-                         $"{distance:F1}m", labelStyle);
-            }
+            // 注意：文字绘制在OnGUI中进行，不在这里调用GUI
         }
 
         /// <summary>
@@ -1009,15 +1017,32 @@ namespace DuckovESP
             {
                 lineMaterial.SetPass(0);
                 GL.LoadOrtho();
+                
+                // 绘制发光外圈（更亮，更粗的效果）
                 GL.Begin(GL.LINE_STRIP);
-                GL.Color(color);
+                GL.Color(new Color(color.r, color.g, color.b, 1.0f)); // 完全不透明
                 
                 float angleStep = 360f / segments * Mathf.Deg2Rad;
                 for (int i = 0; i <= segments; i++)
                 {
                     float angle = i * angleStep;
                     float x = center.x + radius * Mathf.Cos(angle);
-                    float y = center.y + radius * Mathf.Sin(angle);
+                    // Y轴：GL坐标系中0在底部，需要翻转
+                    float y = Screen.height - center.y + radius * Mathf.Sin(angle);
+                    GL.Vertex3(x / Screen.width, y / Screen.height, 0f);
+                }
+                
+                GL.End();
+                
+                // 绘制内圈（用于霓虹效果）
+                GL.Begin(GL.LINE_STRIP);
+                GL.Color(new Color(color.r * 0.7f, color.g * 0.7f, color.b * 0.7f, 0.5f));
+                
+                for (int i = 0; i <= segments; i++)
+                {
+                    float angle = i * angleStep;
+                    float x = center.x + radius * 0.7f * Mathf.Cos(angle);
+                    float y = Screen.height - center.y + radius * 0.7f * Mathf.Sin(angle);
                     GL.Vertex3(x / Screen.width, y / Screen.height, 0f);
                 }
                 
@@ -1060,17 +1085,7 @@ namespace DuckovESP
             Color color = _config.EvacuationIndicatorColor;
             DrawArrowGL(arrowPos, direction, arrowSize, color);
             
-            // 绘制距离信息
-            if (_config.ShowEvacuationDistance)
-            {
-                var distanceStyle = new GUIStyle(GUI.skin.label);
-                distanceStyle.fontSize = 11;
-                distanceStyle.normal.textColor = color;
-                distanceStyle.alignment = TextAnchor.MiddleCenter;
-                
-                GUI.Label(new Rect(arrowPos.x - 25, arrowPos.y + arrowSize / 2 + 5, 50, 18), 
-                         $"{distance:F0}m", distanceStyle);
-            }
+            // 注意：文字绘制在OnGUI中进行，不在这里调用GUI
         }
 
         /// <summary>
@@ -1085,25 +1100,318 @@ namespace DuckovESP
                 lineMaterial.SetPass(0);
                 GL.LoadOrtho();
                 GL.Begin(GL.TRIANGLES);
-                GL.Color(color);
                 
-                // 计算箭头的三个顶点
-                Vector2 right = new Vector2(-direction.y, direction.x) * size * 0.3f;
-                Vector2 tip = position + direction * size * 0.5f;
+                // 绘制两层三角形用于霓虹效果
+                // 外层：更大，较透明
+                Color glowColor = new Color(color.r, color.g, color.b, 0.6f);
+                GL.Color(glowColor);
+                
+                Vector2 right = new Vector2(-direction.y, direction.x) * size * 0.4f;
+                Vector2 tip = position + direction * size * 0.6f;
                 Vector2 base1 = position - direction * size * 0.3f + right;
                 Vector2 base2 = position - direction * size * 0.3f - right;
                 
-                // 绘制三角形
-                GL.Vertex3(tip.x / Screen.width, tip.y / Screen.height, 0f);
-                GL.Vertex3(base1.x / Screen.width, base1.y / Screen.height, 0f);
-                GL.Vertex3(base2.x / Screen.width, base2.y / Screen.height, 0f);
+                // 调整Y坐标：GL坐标系中0在底部
+                GL.Vertex3(tip.x / Screen.width, (Screen.height - tip.y) / Screen.height, 0f);
+                GL.Vertex3(base1.x / Screen.width, (Screen.height - base1.y) / Screen.height, 0f);
+                GL.Vertex3(base2.x / Screen.width, (Screen.height - base2.y) / Screen.height, 0f);
+                
+                GL.End();
+                
+                // 内层：更小，完全不透明（核心）
+                GL.Begin(GL.TRIANGLES);
+                GL.Color(new Color(color.r, color.g, color.b, 1.0f));
+                
+                right = new Vector2(-direction.y, direction.x) * size * 0.25f;
+                tip = position + direction * size * 0.5f;
+                base1 = position - direction * size * 0.2f + right;
+                base2 = position - direction * size * 0.2f - right;
+                
+                GL.Vertex3(tip.x / Screen.width, (Screen.height - tip.y) / Screen.height, 0f);
+                GL.Vertex3(base1.x / Screen.width, (Screen.height - base1.y) / Screen.height, 0f);
+                GL.Vertex3(base2.x / Screen.width, (Screen.height - base2.y) / Screen.height, 0f);
                 
                 GL.End();
             }
             GL.PopMatrix();
         }
 
+        /// <summary>
+        /// 在OnGUI中绘制撤离点距离文字（配合GL的圆形和箭头）
+        /// </summary>
+        private void DrawEvacuationIndicatorsText()
+        {
+            try
+            {
+                var evacuationPoints = _cheatSystem.GetEvacuationPoints();
+                if (evacuationPoints.Count == 0)
+                    return;
+
+                CharacterMainControl player = CharacterMainControl.Main;
+                if (player == null)
+                    return;
+
+                Vector3 playerPos = player.transform.position;
+                float screenWidth = Screen.width;
+                float screenHeight = Screen.height;
+                
+                const float edgeMargin = 40f;
+                Color color = _config.EvacuationIndicatorColor;
+                float size = _config.EvacuationIndicatorSize;
+                
+                var labelStyle = new GUIStyle(GUI.skin.label);
+                labelStyle.fontSize = 10;
+                labelStyle.normal.textColor = color;
+                labelStyle.alignment = TextAnchor.UpperCenter;
+
+                foreach (var (evacPoint, distance) in evacuationPoints)
+                {
+                    Vector3 screenPos = _mainCamera.WorldToScreenPoint(evacPoint);
+                    
+                    if (screenPos.z > 0)
+                    {
+                        screenPos.y = screenHeight - screenPos.y;
+                        
+                        if (_config.ShowEvacuationDistance)
+                        {
+                            // 在屏幕内的圆形下方显示距离
+                            if (screenPos.x >= 0 && screenPos.x <= screenWidth && 
+                                screenPos.y >= 0 && screenPos.y <= screenHeight)
+                            {
+                                GUI.Label(new Rect(screenPos.x - 30, screenPos.y + size / 2 + 5, 60, 20), 
+                                         $"{distance:F1}m", labelStyle);
+                            }
+                            else
+                            {
+                                // 在屏幕外的箭头旁显示距离
+                                Vector2 center = new Vector2(screenWidth / 2, screenHeight / 2);
+                                Vector2 direction = (new Vector2(screenPos.x, screenPos.y) - center).normalized;
+                                
+                                float absX = Mathf.Abs(direction.x);
+                                float absY = Mathf.Abs(direction.y);
+                                
+                                Vector2 arrowPos;
+                                if (absX > absY)
+                                {
+                                    arrowPos.x = direction.x > 0 ? screenWidth - edgeMargin : edgeMargin;
+                                    arrowPos.y = center.y + direction.y * (screenWidth / 2 - edgeMargin) / absX;
+                                }
+                                else
+                                {
+                                    arrowPos.y = direction.y > 0 ? screenHeight - edgeMargin : edgeMargin;
+                                    arrowPos.x = center.x + direction.x * (screenHeight / 2 - edgeMargin) / absY;
+                                }
+                                
+                                GUI.Label(new Rect(arrowPos.x - 25, arrowPos.y + 15, 50, 18), 
+                                         $"{distance:F0}m", labelStyle);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 绘制撤离点文字时出错 - {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 绘制任务区域指示（圆形或箭头）
+        /// </summary>
+        private void DrawQuestZoneIndicatorsGL()
+        {
+            try
+            {
+                var questZones = _cheatSystem.GetQuestZones();
+                if (questZones.Count == 0)
+                    return;
+
+                CharacterMainControl player = CharacterMainControl.Main;
+                if (player == null)
+                    return;
+
+                Vector3 playerPos = player.transform.position;
+                float screenWidth = Screen.width;
+                float screenHeight = Screen.height;
+
+                const float edgeMargin = 60f;
+                const float arrowSize = 40f;
+
+                foreach (var kvp in questZones)
+                {
+                    QuestZoneMarkerData markerData = kvp.Value;
+                    if (markerData == null || !markerData.isActive)
+                        continue;
+
+                    // 为任务区域创建小地图标记
+                    CreateQuestZoneMiniMapMarker(markerData);
+
+                    // 转换任务区域中心到屏幕坐标
+                    Vector3 screenPos = _mainCamera.WorldToScreenPoint(markerData.centerPosition);
+
+                    // 如果任务点在摄像机前方
+                    if (screenPos.z > 0)
+                    {
+                        screenPos.y = screenHeight - screenPos.y;
+
+                        // 检查是否在屏幕内
+                        if (screenPos.x >= 0 && screenPos.x <= screenWidth &&
+                            screenPos.y >= 0 && screenPos.y <= screenHeight)
+                        {
+                            // 在屏幕内，绘制圆形（表示到达范围）
+                            DrawQuestZoneCircleGL(new Vector2(screenPos.x, screenPos.y), 
+                                                 markerData.radius, markerData.distance);
+                        }
+                        else
+                        {
+                            // 在屏幕外，绘制在边缘的箭头指向
+                            DrawQuestZoneArrowGL(new Vector2(screenPos.x, screenPos.y),
+                                               new Vector2(screenWidth, screenHeight),
+                                               edgeMargin, arrowSize, markerData.distance);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 绘制任务区域指示时出错 - {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 使用GL绘制任务区域圆形（屏幕内）
+        /// </summary>
+        private void DrawQuestZoneCircleGL(Vector2 screenPos, float worldRadius, float distance)
+        {
+            // 使用黄色表示任务区域
+            Color color = _config.QuestZoneIndicatorColor;
+            
+            // 根据距离缩放圆形大小：更近时更大
+            float maxRadius = 150f;
+            float minRadius = 30f;
+            float radiusPixels = Mathf.Lerp(maxRadius, minRadius, Mathf.Clamp01(distance / 200f));
+            
+            // 绘制外圈（发光效果）
+            DrawCircleGL(screenPos, radiusPixels, color, 24);
+        }
+
+        /// <summary>
+        /// 使用GL绘制任务区域箭头（屏幕外）
+        /// </summary>
+        private void DrawQuestZoneArrowGL(Vector2 worldScreenPos, Vector2 screenSize,
+                                        float margin, float arrowSize, float distance)
+        {
+            Vector2 center = new Vector2(screenSize.x / 2, screenSize.y / 2);
+            Vector2 direction = (worldScreenPos - center).normalized;
+
+            // 计算箭头位置（在屏幕边缘）
+            Vector2 arrowPos;
+
+            float absX = Mathf.Abs(direction.x);
+            float absY = Mathf.Abs(direction.y);
+
+            if (absX > absY)
+            {
+                // 左或右边缘
+                arrowPos.x = direction.x > 0 ? screenSize.x - margin : margin;
+                arrowPos.y = center.y + direction.y * (screenSize.x / 2 - margin) / absX;
+            }
+            else
+            {
+                // 上或下边缘
+                arrowPos.y = direction.y > 0 ? screenSize.y - margin : margin;
+                arrowPos.x = center.x + direction.x * (screenSize.y / 2 - margin) / absY;
+            }
+
+            // 绘制箭头（使用任务区域的黄色）
+            Color color = _config.QuestZoneIndicatorColor;
+            DrawArrowGL(arrowPos, direction, arrowSize, color);
+        }
+
         
+        /// <summary>
+        /// 在OnGUI中绘制任务区域信息（名称和距离）
+        /// </summary>
+        private void DrawQuestZoneIndicatorsText()
+        {
+            try
+            {
+                var questZones = _cheatSystem.GetQuestZones();
+                if (questZones.Count == 0)
+                    return;
+
+                CharacterMainControl player = CharacterMainControl.Main;
+                if (player == null)
+                    return;
+
+                Vector3 playerPos = player.transform.position;
+                float screenWidth = Screen.width;
+                float screenHeight = Screen.height;
+
+                Color color = _config.QuestZoneIndicatorColor;
+                
+                var labelStyle = new GUIStyle(GUI.skin.label);
+                labelStyle.fontSize = 10;
+                labelStyle.normal.textColor = color;
+                labelStyle.alignment = TextAnchor.UpperCenter;
+
+                foreach (var kvp in questZones)
+                {
+                    QuestZoneMarkerData markerData = kvp.Value;
+                    if (markerData == null || !markerData.isActive)
+                        continue;
+
+                    Vector3 screenPos = _mainCamera.WorldToScreenPoint(markerData.centerPosition);
+
+                    if (screenPos.z > 0)
+                    {
+                        screenPos.y = screenHeight - screenPos.y;
+
+                        // 在屏幕内的圆形下方显示任务名称和距离
+                        if (screenPos.x >= 0 && screenPos.x <= screenWidth &&
+                            screenPos.y >= 0 && screenPos.y <= screenHeight)
+                        {
+                            float size = _config.QuestZoneIndicatorSize * 3;
+                            size = Mathf.Clamp(size, 30f, 150f);
+                            
+                            string displayText = $"{markerData.displayName}\n{markerData.distance:F1}m";
+                            GUI.Label(new Rect(screenPos.x - 50, screenPos.y + size / 2 + 5, 100, 40),
+                                     displayText, labelStyle);
+                        }
+                        else
+                        {
+                            // 在屏幕外的箭头旁显示任务名称
+                            Vector2 center = new Vector2(screenWidth / 2, screenHeight / 2);
+                            Vector2 direction = (new Vector2(screenPos.x, screenPos.y) - center).normalized;
+
+                            float absX = Mathf.Abs(direction.x);
+                            float absY = Mathf.Abs(direction.y);
+
+                            Vector2 textPos;
+                            const float edgeMargin = 60f;
+                            if (absX > absY)
+                            {
+                                textPos.x = direction.x > 0 ? screenWidth - edgeMargin - 80 : edgeMargin;
+                                textPos.y = center.y + direction.y * (screenWidth / 2 - edgeMargin) / absX;
+                            }
+                            else
+                            {
+                                textPos.y = direction.y > 0 ? screenHeight - edgeMargin - 30 : edgeMargin;
+                                textPos.x = center.x + direction.x * (screenHeight / 2 - edgeMargin) / absY - 50;
+                            }
+
+                            GUI.Label(new Rect(textPos.x, textPos.y, 100, 30),
+                                     markerData.displayName, labelStyle);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 绘制任务区域文字时出错 - {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// 绘制单个ESP框和信息（优化版：接收预计算的品质）
         /// </summary>
@@ -1381,6 +1689,11 @@ namespace DuckovESP
                     if (_trackedWorldItems.ContainsKey(itemAgent))
                         continue;
 
+                    // 【新增】如果物品被人物持有（即主手武器或装备），则不标记到小地图
+                    CharacterMainControl holder = itemAgent.Holder;
+                    if (holder != null)
+                        continue;
+
                     // 获取物品
                     Item item = itemAgent.Item;
                     if (item == null)
@@ -1421,6 +1734,56 @@ namespace DuckovESP
             catch (Exception ex)
             {
                 Debug.LogError($"DuckovESP: 扫描世界物品时出错 - {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 为任务区域创建小地图标记
+        /// </summary>
+        private void CreateQuestZoneMiniMapMarker(QuestZoneMarkerData markerData)
+        {
+            try
+            {
+                if (markerData == null || !markerData.isActive)
+                    return;
+
+                // 检查是否已经创建了标记（通过检查缓存键）
+                string markerKey = $"QuestZone_{markerData.centerPosition}";
+                if (_questZoneMarkerCache.ContainsKey(markerKey))
+                {
+                    // 已经创建过，跳过
+                    return;
+                }
+
+                // 创建标记对象
+                GameObject markerObj = new GameObject($"QuestZoneMarker_{markerData.centerPosition}");
+                markerObj.transform.position = markerData.centerPosition;
+
+                // 添加地图标记组件
+                SimplePointOfInterest poi = markerObj.AddComponent<SimplePointOfInterest>();
+                poi.Color = _config.QuestZoneIndicatorColor;  // 使用任务区域指示器的颜色
+                poi.ShadowColor = Color.black;
+                poi.ShadowDistance = 0f;
+
+                // 设置标记图标和文本
+                Sprite icon = GetMarkerIcon();
+                string taskName = markerData.displayName ?? "任务区域";
+                poi.Setup(icon, taskName, true, null);
+
+                // 移动到主场景
+                if (MultiSceneCore.MainScene != null)
+                {
+                    SceneManager.MoveGameObjectToScene(markerObj, MultiSceneCore.MainScene.Value);
+                }
+
+                // 缓存标记对象
+                _questZoneMarkerCache[markerKey] = markerObj;
+
+                Debug.Log($"[DuckovESP] ✓ 为任务区域 '{taskName}' 创建小地图标记");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"DuckovESP: 创建任务区域小地图标记失败 - {ex.Message}");
             }
         }
 
