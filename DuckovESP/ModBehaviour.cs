@@ -582,6 +582,12 @@ namespace DuckovESP
                 DrawCheatStatusIndicator();
             }
             
+            // 绘制撤离点指示
+            if (LevelManager.LevelInited && _config.EnableEvacuationIndicator && !isInBase && _mainCamera != null)
+            {
+                DrawEvacuationIndicators();
+            }
+            
             // 基地内不显示 ESP
             if (isInBase || !_enable3DESP || !LevelManager.LevelInited || _mainCamera == null)
                 return;
@@ -902,6 +908,146 @@ namespace DuckovESP
             texture.SetPixels(pixels);
             texture.Apply();
             return texture;
+        }
+
+        /// <summary>
+        /// 绘制撤离点指示（在屏幕边缘显示绿色箭头和距离）
+        /// </summary>
+        private void DrawEvacuationIndicators()
+        {
+            try
+            {
+                var evacuationPoints = _cheatSystem.GetEvacuationPoints();
+                if (evacuationPoints.Count == 0)
+                    return;
+
+                CharacterMainControl player = CharacterMainControl.Main;
+                if (player == null)
+                    return;
+
+                Vector3 playerPos = player.transform.position;
+                float screenWidth = Screen.width;
+                float screenHeight = Screen.height;
+                
+                // 屏幕边缘的安全距离
+                const float edgeMargin = 40f;
+                const float arrowSize = 20f;
+
+                foreach (var (evacPoint, distance) in evacuationPoints)
+                {
+                    // 转换撤离点到屏幕坐标
+                    Vector3 screenPos = _mainCamera.WorldToScreenPoint(evacPoint);
+                    
+                    // 如果撤离点在摄像机前方
+                    if (screenPos.z > 0)
+                    {
+                        screenPos.y = screenHeight - screenPos.y; // Unity的Y轴翻转
+                        
+                        // 检查是否在屏幕内
+                        if (screenPos.x >= 0 && screenPos.x <= screenWidth && 
+                            screenPos.y >= 0 && screenPos.y <= screenHeight)
+                        {
+                            // 在屏幕内，绘制标记
+                            DrawEvacuationMarker(new Vector2(screenPos.x, screenPos.y), distance, arrowSize);
+                        }
+                        else
+                        {
+                            // 在屏幕外，绘制在边缘的箭头指向
+                            DrawEvacuationArrowAtEdge(new Vector2(screenPos.x, screenPos.y), 
+                                                   new Vector2(screenWidth, screenHeight), 
+                                                   edgeMargin, arrowSize, distance);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 绘制撤离点指示时出错 - {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 在屏幕内绘制撤离点标记
+        /// </summary>
+        private void DrawEvacuationMarker(Vector2 screenPos, float distance, float size)
+        {
+            // 绘制绿色圆形标记
+            GUIStyle circleStyle = new GUIStyle();
+            circleStyle.fontSize = 16;
+            circleStyle.fontStyle = FontStyle.Bold;
+            circleStyle.alignment = TextAnchor.MiddleCenter;
+            circleStyle.normal.textColor = _config.EvacuationIndicatorColor;
+            
+            // 绘制圆圈符号
+            GUI.Label(new Rect(screenPos.x - size / 2, screenPos.y - size / 2, size, size), 
+                     "◉", circleStyle);
+            
+            // 绘制距离信息
+            if (_config.ShowEvacuationDistance)
+            {
+                GUIStyle distanceStyle = new GUIStyle(GUI.skin.label);
+                distanceStyle.fontSize = 12;
+                distanceStyle.normal.textColor = _config.EvacuationIndicatorColor;
+                distanceStyle.alignment = TextAnchor.UpperCenter;
+                
+                string distanceText = $"{distance:F1}m";
+                GUI.Label(new Rect(screenPos.x - 30, screenPos.y + size / 2 + 5, 60, 20), 
+                         distanceText, distanceStyle);
+            }
+        }
+
+        /// <summary>
+        /// 在屏幕边缘绘制指向撤离点的箭头
+        /// </summary>
+        private void DrawEvacuationArrowAtEdge(Vector2 worldScreenPos, Vector2 screenSize, 
+                                             float margin, float arrowSize, float distance)
+        {
+            // 计算方向
+            Vector2 center = new Vector2(screenSize.x / 2, screenSize.y / 2);
+            Vector2 direction = (worldScreenPos - center).normalized;
+            
+            // 计算箭头位置（在屏幕边缘）
+            Vector2 arrowPos;
+            
+            // 确定箭头应该在哪条边上
+            float absX = Mathf.Abs(direction.x);
+            float absY = Mathf.Abs(direction.y);
+            
+            if (absX > absY)
+            {
+                // 左或右边缘
+                arrowPos.x = direction.x > 0 ? screenSize.x - margin : margin;
+                arrowPos.y = center.y + direction.y * (screenSize.x / 2 - margin) / absX;
+            }
+            else
+            {
+                // 上或下边缘
+                arrowPos.y = direction.y > 0 ? screenSize.y - margin : margin;
+                arrowPos.x = center.x + direction.x * (screenSize.y / 2 - margin) / absY;
+            }
+            
+            // 绘制箭头
+            GUIStyle arrowStyle = new GUIStyle();
+            arrowStyle.fontSize = 18;
+            arrowStyle.fontStyle = FontStyle.Bold;
+            arrowStyle.alignment = TextAnchor.MiddleCenter;
+            arrowStyle.normal.textColor = _config.EvacuationIndicatorColor;
+            
+            GUI.Label(new Rect(arrowPos.x - arrowSize / 2, arrowPos.y - arrowSize / 2, 
+                             arrowSize, arrowSize), "→", arrowStyle);
+            
+            // 绘制距离信息
+            if (_config.ShowEvacuationDistance)
+            {
+                GUIStyle distanceStyle = new GUIStyle(GUI.skin.label);
+                distanceStyle.fontSize = 11;
+                distanceStyle.normal.textColor = _config.EvacuationIndicatorColor;
+                distanceStyle.alignment = TextAnchor.MiddleCenter;
+                
+                string distanceText = $"{distance:F0}m";
+                GUI.Label(new Rect(arrowPos.x - 25, arrowPos.y + arrowSize / 2 + 5, 50, 18), 
+                         distanceText, distanceStyle);
+            }
         }
         
         /// <summary>
@@ -1544,8 +1690,8 @@ namespace DuckovESP
         }
 
         /// <summary>
-        /// 检查 InteractableLootbox 是否在人物身上（而不是独立的箱子）
-        /// 过滤玩家自身的高价值装备、背包等
+        /// 检查 InteractableLootbox 是否在玩家自身上
+        /// 过滤玩家自身的装备、背包等 (不显示玩家自己的物品)
         /// </summary>
         private bool IsLootboxOnCharacter(InteractableLootbox lootbox)
         {
@@ -1554,50 +1700,37 @@ namespace DuckovESP
 
             try
             {
-                // 【关键修复】先检查是否是玩家自己的装备
+                // 获取玩家
                 CharacterMainControl playerChar = CharacterMainControl.Main;
-                if (playerChar != null)
+                if (playerChar == null)
+                    return false;
+
+                // 【关键修复】检查 Lootbox 的拥有者是否是玩家自己
+                // 方法 1: 直接检查组件
+                CharacterMainControl owner = lootbox.GetComponent<CharacterMainControl>();
+                if (owner == null)
                 {
-                    // 检查是否属于玩家自己
-                    CharacterMainControl owner = lootbox.GetComponent<CharacterMainControl>();
-                    if (owner == null)
-                    {
-                        owner = lootbox.GetComponentInParent<CharacterMainControl>();
-                    }
-                    
-                    // 如果拥有者是玩家自己，直接过滤
-                    if (owner == playerChar)
-                    {
-                        return true;
-                    }
+                    owner = lootbox.GetComponentInParent<CharacterMainControl>();
                 }
                 
-                // 【关键】检查 Lootbox 的 GameObject 或其父节点是否有 CharacterMainControl 组件
-                CharacterMainControl character = lootbox.GetComponent<CharacterMainControl>();
-                if (character == null)
+                // 如果拥有者是玩家自己，过滤掉（这是玩家的装备或背包）
+                if (owner == playerChar)
                 {
-                    character = lootbox.GetComponentInParent<CharacterMainControl>();
-                }
-                
-                if (character != null)
-                {
-                    // 是人物身上的 Lootbox（如背包、装备栏）
-                    // 特别地，玩家自身的 Lootbox 也要过滤掉
                     return true;
                 }
                 
-                // 检查 Inventory 是否属于人物装备
+                // 方法 2: 检查 Inventory 关联
                 Inventory inventory = lootbox.Inventory;
                 if (inventory != null)
                 {
-                    // 尝试获取人物组件
-                    CharacterMainControl characterFromInventory = inventory.GetComponent<CharacterMainControl>();
-                    if (characterFromInventory == null)
+                    // 检查是否是玩家的 Inventory
+                    CharacterMainControl invOwner = inventory.GetComponent<CharacterMainControl>();
+                    if (invOwner == null)
                     {
-                        characterFromInventory = inventory.GetComponentInParent<CharacterMainControl>();
+                        invOwner = inventory.GetComponentInParent<CharacterMainControl>();
                     }
                     
-                    if (characterFromInventory != null)
+                    if (invOwner == playerChar)
                     {
                         return true;
                     }
@@ -1612,42 +1745,13 @@ namespace DuckovESP
                     }
                     catch { }
                 }
-                
-                // 检查 GameObject 名字，人物相关的通常有特定命名
-                string objName = lootbox.gameObject.name.ToLower();
-                if (objName.Contains("character") || 
-                    objName.Contains("player") || 
-                    objName.Contains("backpack") ||
-                    objName.Contains("equipment") ||
-                    objName.Contains("inventory_character") ||
-                    objName.Contains("equipment_inventory") ||
-                    objName.Contains("backpack_inventory"))
-                {
-                    return true;
-                }
-                
-                // 检查是否在游戏中已知的人物装备容器名称
-                Transform parent = lootbox.transform.parent;
-                int levels = 0;
-                while (parent != null && levels < 5)
-                {
-                    string parentName = parent.name.ToLower();
-                    if (parentName.Contains("character") || 
-                        parentName.Contains("player") || 
-                        parentName.Contains("humanoid"))
-                    {
-                        return true;
-                    }
-                    parent = parent.parent;
-                    levels++;
-                }
-                
-                // 不是人物身上的，是独立箱子
+
+                // 不是玩家的物品，显示它
                 return false;
             }
-            catch
+            catch (Exception ex)
             {
-                // 如果检查失败，保守起见认为不是人物装备
+                Debug.LogWarning($"DuckovESP: 检查物品归属失败 - {ex.Message}");
                 return false;
             }
         }

@@ -201,6 +201,18 @@ namespace DuckovESP
             _config.MinQualityForMapMarkers = (int)GUILayout.HorizontalSlider(_config.MinQualityForMapMarkers, 0, 6, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
+            // 撤离点指示开关
+            _config.EnableEvacuationIndicator = GUILayout.Toggle(_config.EnableEvacuationIndicator, LocalizationManager.Get("UI.Toggle.EnableEvacuationIndicator"), _toggleStyle);
+            
+            // 显示撤离点距离
+            _config.ShowEvacuationDistance = GUILayout.Toggle(_config.ShowEvacuationDistance, LocalizationManager.Get("UI.Toggle.ShowEvacuationDistance"), _toggleStyle);
+            
+            // 撤离点指示大小
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(LocalizationManager.Get("UI.Label.EvacuationIndicatorSizeLabel", ("size", _config.EvacuationIndicatorSize)), _labelStyle, GUILayout.Width(200));
+            _config.EvacuationIndicatorSize = GUILayout.HorizontalSlider(_config.EvacuationIndicatorSize, 10f, 50f, GUILayout.Width(200));
+            GUILayout.EndHorizontal();
+            
             GUILayout.Space(10);
             GUILayout.Label(LocalizationManager.Get("UI.Menu.AppearanceSettings"), _labelStyle);
             GUILayout.Space(5);

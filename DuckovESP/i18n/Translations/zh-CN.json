@@ -156,7 +156,9 @@
       "EnableTriggerBot": " 启用自动扳机",
       "TriggerBotOnlyADS": " 仅在瞄准时触发",
       "TriggerBotTeamCheck": " 检查队友（避免误伤）",
-      "EnableNoRecoil": " 启用无后座力"
+      "EnableNoRecoil": " 启用无后座力",
+      "EnableEvacuationIndicator": " 启用撤离点指示",
+      "ShowEvacuationDistance": " 显示到撤离点的距离"
     },
     "Label": {
       "MaxDisplayDistance": "最大显示距离",
@@ -199,7 +201,8 @@
       "AimbotMaxDistanceLabel": "最大瞄准距离: {value:F0}m",
       "TriggerBotDelayLabel": "触发延迟: {value:F3}秒",
       "NoRecoilTitle": "说明: 消除所有武器的后座力，射击时枪械不会抖动",
-      "NoRecoilMechanismTitle": "工作原理: 修改角色后座力控制和武器属性"
+      "NoRecoilMechanismTitle": "工作原理: 修改角色后座力控制和武器属性",
+      "EvacuationIndicatorSizeLabel": "撤离点指示大小: {size}"
     },
     "CheatKeys": {
       "GodMode": "• Shift + F7 = 无敌模式（保持满血）",
@@ -207,7 +210,7 @@
       "SpeedBoost": "• Shift + F9 = 速度提升（2.5x 跑步速度）",
       "InfiniteWeight": "• Shift + F10 = 无限负重（99万kg）",
       "InfiniteAmmo": "• Shift + F11 = 无限子弹（弹匣永不减少）",
-      "InfiniteStamina": "• Shift + F12 = 无限耐力（永不疲劳）"
+      "InfiniteStamina": "• Shift + F12 = 无限耐力（永不疲劳、不饥饿、不脱水）"
     },
     "Warning": {
       "TriggerBotRequiresAimbot": "⚠️ 警告: 自动扳机需要启用自动瞄准才能工作！",

@@ -69,7 +69,13 @@ namespace DuckovESP
         public KeyCode SpeedBoostKey = KeyCode.F9; // 速度提升
         public KeyCode InfiniteWeightKey = KeyCode.F10; // 无限负重
         public KeyCode InfiniteAmmoKey = KeyCode.F11; // 无限子弹
-        public KeyCode InfiniteStaminaKey = KeyCode.F12; // 无限耐力
+        public KeyCode InfiniteStaminaKey = KeyCode.F12; // 无限耐力 (现已包含无限饥饿和脱水)
+        
+        // 撤离点指示设置
+        public bool EnableEvacuationIndicator = true; // 启用撤离点指示
+        public Color EvacuationIndicatorColor = Color.green; // 撤离点指示颜色
+        public float EvacuationIndicatorSize = 20f; // 撤离点指示大小
+        public bool ShowEvacuationDistance = true; // 显示到撤离点的距离
         
         // 任务物品和建筑材料标记
         public bool HighlightQuestItems = true; // 高亮任务物品
@@ -205,6 +211,12 @@ namespace DuckovESP
             InfiniteWeightKey = KeyCode.F10;
             InfiniteAmmoKey = KeyCode.F11;
             InfiniteStaminaKey = KeyCode.F12;
+            
+            // 撤离点指示
+            EnableEvacuationIndicator = true;
+            EvacuationIndicatorColor = Color.green;
+            EvacuationIndicatorSize = 20f;
+            ShowEvacuationDistance = true;
         }
     }
 }

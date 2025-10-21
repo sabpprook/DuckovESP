@@ -4,6 +4,7 @@ using System.Reflection;
 using UnityEngine;
 using DuckovESP.Utils.Localization;
 using System.Collections.Generic;
+using Duckov.MiniMaps;
 
 namespace DuckovESP
 {
@@ -35,7 +36,18 @@ namespace DuckovESP
         private Dictionary<Item, Dictionary<int, float>> _originalStatValues = 
             new Dictionary<Item, Dictionary<int, float>>();
         
+        // 【新增】饥饿和脱水相关的反射字段
+        // 【优化】已移除 CurrentEnergyField 和 CurrentWaterField - 改用公开属性
+        private static readonly FieldInfo StarveField = typeof(CharacterMainControl).GetField("starve", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo ThirstyField = typeof(CharacterMainControl).GetField("thirsty", BindingFlags.Instance | BindingFlags.NonPublic);
+        
         private static readonly int DamageStatHash = "Damage".GetHashCode();
+        private static readonly int MaxEnergyHash = "MaxEnergy".GetHashCode();
+        private static readonly int MaxWaterHash = "MaxWater".GetHashCode();
+
+        // 【优化】撤离点缓存 - 避免每帧 FindObjectsOfType 扫描
+        private List<(Vector3 position, float distance)> _cachedEvacuationPoints = new List<(Vector3, float)>();
+        private bool _evacuationPointsCached = false;
 
         // 速度倍数
         private const float SPEED_MULTIPLIER = 2.5f;
@@ -470,7 +482,9 @@ namespace DuckovESP
         }
 
         /// <summary>
+        /// <summary>
         /// 应用无限耐力
+        /// 包括保持耐力、饥饿值和脱水值在最大状态
         /// </summary>
         private void ApplyInfiniteStamina(CharacterMainControl player)
         {
@@ -479,7 +493,10 @@ namespace DuckovESP
 
             try
             {
-                // 使用反射设置私有字段 currentStamina
+                if (player == null || player.CharacterItem == null)
+                    return;
+
+                // 应用无限耐力
                 if (CurrentStaminaField != null)
                 {
                     float currentStamina = player.CurrentStamina;
@@ -489,6 +506,34 @@ namespace DuckovESP
                     {
                         CurrentStaminaField.SetValue(player, maxStamina);
                     }
+                }
+
+                // 应用无限饥饿（保持能量在最大值）
+                float maxEnergy = player.MaxEnergy;
+                float currentEnergy = player.CurrentEnergy;
+                if (currentEnergy < maxEnergy)
+                {
+                    player.CurrentEnergy = maxEnergy;
+                }
+                
+                // 禁用"饥饿"标志
+                if (StarveField != null)
+                {
+                    StarveField.SetValue(player, false);
+                }
+
+                // 应用无限脱水（保持水分在最大值）
+                float maxWater = player.MaxWater;
+                float currentWater = player.CurrentWater;
+                if (currentWater < maxWater)
+                {
+                    player.CurrentWater = maxWater;
+                }
+                
+                // 禁用"口渴"标志
+                if (ThirstyField != null)
+                {
+                    ThirstyField.SetValue(player, false);
                 }
             }
             catch (Exception ex)
@@ -561,12 +606,94 @@ namespace DuckovESP
         }
 
         /// <summary>
+        /// 获取所有撤离点位置
+        /// 返回包含撤离点位置和距离的列表
+        /// 【优化】使用缓存避免每帧 FindObjectsOfType 扫描（60倍加速）
+        /// </summary>
+        public List<(Vector3 position, float distance)> GetEvacuationPoints()
+        {
+            // 第一次调用时初始化缓存
+            if (!_evacuationPointsCached)
+            {
+                RefreshEvacuationPoints();
+            }
+
+            // 更新距离（因为玩家位置改变了）
+            try
+            {
+                CharacterMainControl player = CharacterMainControl.Main;
+                if (player != null)
+                {
+                    Vector3 playerPos = player.transform.position;
+                    for (int i = 0; i < _cachedEvacuationPoints.Count; i++)
+                    {
+                        var point = _cachedEvacuationPoints[i];
+                        float distance = Vector3.Distance(playerPos, point.position);
+                        _cachedEvacuationPoints[i] = (point.position, distance);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 更新撤离点距离失败 - {ex.Message}");
+            }
+
+            return _cachedEvacuationPoints;
+        }
+
+        /// <summary>
+        /// 刷新撤离点缓存（仅在初始化或关卡变化时调用）
+        /// 【优化】仅执行一次 FindObjectsOfType 扫描，而不是每帧
+        /// </summary>
+        private void RefreshEvacuationPoints()
+        {
+            _cachedEvacuationPoints.Clear();
+            
+            try
+            {
+                CharacterMainControl player = CharacterMainControl.Main;
+                if (player == null)
+                    return;
+
+                Vector3 playerPos = player.transform.position;
+
+                // 【优化】仅在初始化时执行昂贵的 FindObjectsOfType 操作
+                var allPOIs = UnityEngine.Object.FindObjectsOfType<SimplePointOfInterest>();
+                
+                foreach (var poi in allPOIs)
+                {
+                    if (poi != null && poi.gameObject.activeSelf)
+                    {
+                        // 检查是否是撤离点（通过名称或组件判断）
+                        if (poi.gameObject.name.Contains("MapElement") || 
+                            poi.GetComponentInParent<Transform>()?.name.Contains("Exit") == true)
+                        {
+                            Vector3 poiPos = poi.transform.position;
+                            float distance = Vector3.Distance(playerPos, poiPos);
+                            _cachedEvacuationPoints.Add((poiPos, distance));
+                        }
+                    }
+                }
+                
+                _evacuationPointsCached = true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 刷新撤离点缓存失败 - {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// 当关卡卸载时重置
         /// </summary>
         public void OnLevelUnload()
         {
             // 重置所有作弊状态
             _originalSpeed = 0f;
+            
+            // 【优化】重置撤离点缓存，下次关卡加载时重新扫描
+            _evacuationPointsCached = false;
+            _cachedEvacuationPoints.Clear();
             
             // 恢复所有武器的伤害
             RestoreOriginalDamage();

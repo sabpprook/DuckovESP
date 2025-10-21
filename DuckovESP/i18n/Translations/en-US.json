@@ -156,7 +156,9 @@
       "EnableTriggerBot": " Enable Trigger Bot",
       "TriggerBotOnlyADS": " Only Fire When Aiming",
       "TriggerBotTeamCheck": " Check Teammates (Avoid Friendly Fire)",
-      "EnableNoRecoil": " Enable No Recoil"
+      "EnableNoRecoil": " Enable No Recoil",
+      "EnableEvacuationIndicator": " Enable Evacuation Indicator",
+      "ShowEvacuationDistance": " Show Evacuation Distance"
     },
     "Label": {
       "MaxDisplayDistance": "Max Display Distance",
@@ -199,7 +201,8 @@
       "AimbotMaxDistanceLabel": "Max Aiming Distance: {value:F0}m",
       "TriggerBotDelayLabel": "Trigger Delay: {value:F3}s",
       "NoRecoilTitle": "Description: Eliminate all weapon recoil, guns won't shake when firing",
-      "NoRecoilMechanismTitle": "Mechanism: Modify character recoil control and weapon properties"
+      "NoRecoilMechanismTitle": "Mechanism: Modify character recoil control and weapon properties",
+      "EvacuationIndicatorSizeLabel": "Evacuation Indicator Size: {size}"
     },
     "CheatKeys": {
       "GodMode": "• Shift + F7 = God Mode (Keep full health)",

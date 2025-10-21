@@ -156,7 +156,9 @@
       "EnableTriggerBot": " Trigger-Bot aktivieren",
       "TriggerBotOnlyADS": " Nur beim Zielen schießen",
       "TriggerBotTeamCheck": " Teamkameraden überprüfen (Freundschaftsfeuer vermeiden)",
-      "EnableNoRecoil": " Kein Rückstoß aktivieren"
+      "EnableNoRecoil": " Kein Rückstoß aktivieren",
+      "EnableEvacuationIndicator": " Evakuierungsanzeige aktivieren",
+      "ShowEvacuationDistance": " Evakuierungsentfernung anzeigen"
     },
     "Label": {
       "MaxDisplayDistance": "Maximale Anzeigedistanz",
@@ -199,7 +201,8 @@
       "AimbotMaxDistanceLabel": "Max. Aimbot-Entfernung: {value:F0}m",
       "TriggerBotDelayLabel": "Trigger-Verzögerung: {value:F3}s",
       "NoRecoilTitle": "Beschreibung: Beseitigt allen Waffenrückstoß, Gewehre wackeln nicht beim Schießen",
-      "NoRecoilMechanismTitle": "Mechanismus: Ändert die Rückstoßkontrolle des Charakters und Waffeneigenschaften"
+      "NoRecoilMechanismTitle": "Mechanismus: Ändert die Rückstoßkontrolle des Charakters und Waffeneigenschaften",
+      "EvacuationIndicatorSizeLabel": "Größe der Evakuierungsanzeige: {size}"
     },
     "CheatKeys": {
       "GodMode": "• Shift + F7 = Unsterblichkeitsmodus (Volle Gesundheit behalten)",
