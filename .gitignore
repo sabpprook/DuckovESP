@@ -63,4 +63,4 @@ Backup*/
 UpgradeLog*.XML
 
 # Source code reference (不需要提交到Git)
-source_code_reference/
+# source_code_reference/
