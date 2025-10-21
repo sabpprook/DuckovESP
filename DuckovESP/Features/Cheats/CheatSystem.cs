@@ -3,6 +3,7 @@ using System;
 using System.Reflection;
 using UnityEngine;
 using DuckovESP.Utils.Localization;
+using System.Collections.Generic;
 
 namespace DuckovESP
 {
@@ -27,12 +28,18 @@ namespace DuckovESP
 
         // 原始数值备份
         private float _originalSpeed = 0f;
-        private ItemAgent_Gun _lastTrackedGun = null;
+        ItemAgent_Gun _lastTrackedGun = null;
         private float _originalGunDamage = 0f;
+        
+        // 【新增】用于保存武器伤害Stat的原始值
+        private Dictionary<Item, Dictionary<int, float>> _originalStatValues = 
+            new Dictionary<Item, Dictionary<int, float>>();
+        
+        private static readonly int DamageStatHash = "Damage".GetHashCode();
 
         // 速度倍数
         private const float SPEED_MULTIPLIER = 2.5f;
-        private const float ONE_HIT_KILL_DAMAGE = 999999f;
+        private const float ONE_HIT_KILL_DAMAGE_MULTIPLIER = 999f;
 
         public CheatSystem(ESPConfig config)
         {
@@ -123,6 +130,9 @@ namespace DuckovESP
 
         /// <summary>
         /// 应用无敌模式
+        /// 将所有对玩家的伤害设置为 0
+        /// 【修复】使用 Health.SetInvincible(true) 直接标记为无敌
+        /// 参考 Mod_Aimbot 的实现方式
         /// </summary>
         private void ApplyGodMode(CharacterMainControl player)
         {
@@ -133,13 +143,22 @@ namespace DuckovESP
             {
                 // 获取玩家生命值组件
                 var health = player.Health;
-                if (health != null)
+                if (health == null)
+                    return;
+                
+                // 【关键修复】使用 Health.SetInvincible(true) 来防止所有伤害
+                // 这是 Mod_Aimbot 使用的正确方法
+                if (!health.Invincible)
                 {
-                    // 保持满血
-                    if (health.CurrentHealth < health.MaxHealth)
-                    {
-                        player.AddHealth(health.MaxHealth - health.CurrentHealth);
-                    }
+                    health.SetInvincible(true);
+                }
+                
+                // 备份：定期检查并恢复血量，以防万一
+                if (health.CurrentHealth <= 0)
+                {
+                    // 如果血量为0或负数，立即恢复满血
+                    health.SetHealth(health.MaxHealth);
+                    player.AddHealth(health.MaxHealth);
                 }
             }
             catch (Exception ex)
@@ -147,32 +166,115 @@ namespace DuckovESP
                 Debug.LogWarning(LocalizationManager.Get("Error.ApplyGodMode", ("error", ex.Message)));
             }
         }
+        
+        /// <summary>
+        /// 恢复无敌模式（禁用无敌）
+        /// </summary>
+        public void DisableGodMode()
+        {
+            try
+            {
+                CharacterMainControl player = CharacterMainControl.Main;
+                if (player != null)
+                {
+                    var health = player.Health;
+                    if (health != null && health.Invincible)
+                    {
+                        health.SetInvincible(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 禁用无敌模式失败 - {ex.Message}");
+            }
+        }
 
         /// <summary>
-        /// 应用一击必杀（简化版：禁用功能暂不实现对枪械的支持）
-        /// 注意：这个功能对近战武器有效，对枪械目前无可靠实现方法
+        /// 应用一击必杀（通过修改武器伤害Stat）
+        /// 参考 Mod_Aimbot 的实现方式
+        /// 【修复】直接修改武器的 Damage Stat 使其对枪械生效
         /// </summary>
         private void ApplyOneHitKill(CharacterMainControl player)
         {
-            // 暂时禁用一击必杀，因为无可靠的API修改枪械伤害
-            // 子弹伤害修改不可靠（已在 AimbotSystem 中移除）
-            // ItemSetting_Gun 没有公开的 Damage 属性
-            // 需要等待更深入的游戏API研究
-
             if (!_oneHitKillEnabled)
                 return;
 
-            // TODO: 等待找到可靠的枪械伤害修改方法
-            // 目前仅对近战武器有效
+            try
+            {
+                // 获取当前持有的武器
+                var agentHolder = player.agentHolder;
+                if (agentHolder != null)
+                {
+                    var currentGun = agentHolder.CurrentHoldGun;
+                    if (currentGun != null && currentGun.Item != null)
+                    {
+                        // 【关键】应用伤害倍增到武器的 Damage Stat
+                        ApplyStatMultiplier(currentGun.Item, DamageStatHash, ONE_HIT_KILL_DAMAGE_MULTIPLIER);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"DuckovESP: 应用一击必杀失败 - {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 修改 Item 的 Stat 值（完全参考 Mod_Aimbot）
+        /// </summary>
+        private void ApplyStatMultiplier(Item item, int statHash, float multiplier)
+        {
+            if (item == null)
+                return;
+            
+            Stat stat = item.GetStat(statHash);
+            if (stat == null)
+                return;
+            
+            // 备份原始值
+            Dictionary<int, float> dictionary;
+            if (!_originalStatValues.TryGetValue(item, out dictionary))
+            {
+                dictionary = new Dictionary<int, float>();
+                _originalStatValues[item] = dictionary;
+            }
+            
+            float baseValue;
+            if (!dictionary.TryGetValue(statHash, out baseValue))
+            {
+                baseValue = stat.BaseValue;
+                dictionary[statHash] = baseValue;
+            }
+            
+            // 修改 Stat.BaseValue
+            float newValue = baseValue * multiplier;
+            stat.BaseValue = newValue;
+        }
+        
+        /// <summary>
+        /// 恢复原始伤害
+        /// </summary>
+        private void RestoreOriginalDamage()
+        {
+            foreach (var kvp in _originalStatValues)
+            {
+                Item item = kvp.Key;
+                if (item != null)
+                {
+                    foreach (var statKvp in kvp.Value)
+                    {
+                        Stat stat = item.GetStat(statKvp.Key);
+                        if (stat != null)
+                        {
+                            stat.BaseValue = statKvp.Value;
+                        }
+                    }
+                }
+            }
+            _originalStatValues.Clear();
         }
 
-        /// <summary>
-        /// 恢复武器原始伤害（暂未实现）
-        /// </summary>
-        private void RestoreOriginalGunDamage()
-        {
-            // 占位方法
-        }
 
         /// <summary>
         /// 应用速度提升
@@ -465,6 +567,16 @@ namespace DuckovESP
         {
             // 重置所有作弊状态
             _originalSpeed = 0f;
+            
+            // 恢复所有武器的伤害
+            RestoreOriginalDamage();
+            
+            // 恢复无敌模式
+            if (_godModeEnabled)
+            {
+                DisableGodMode();
+                _godModeEnabled = false;
+            }
         }
     }
 }

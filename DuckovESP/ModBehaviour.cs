@@ -1545,6 +1545,7 @@ namespace DuckovESP
 
         /// <summary>
         /// 检查 InteractableLootbox 是否在人物身上（而不是独立的箱子）
+        /// 过滤玩家自身的高价值装备、背包等
         /// </summary>
         private bool IsLootboxOnCharacter(InteractableLootbox lootbox)
         {
@@ -1553,7 +1554,25 @@ namespace DuckovESP
 
             try
             {
-                // 检查 Lootbox 的 GameObject 或其父节点是否有 CharacterMainControl 组件
+                // 【关键修复】先检查是否是玩家自己的装备
+                CharacterMainControl playerChar = CharacterMainControl.Main;
+                if (playerChar != null)
+                {
+                    // 检查是否属于玩家自己
+                    CharacterMainControl owner = lootbox.GetComponent<CharacterMainControl>();
+                    if (owner == null)
+                    {
+                        owner = lootbox.GetComponentInParent<CharacterMainControl>();
+                    }
+                    
+                    // 如果拥有者是玩家自己，直接过滤
+                    if (owner == playerChar)
+                    {
+                        return true;
+                    }
+                }
+                
+                // 【关键】检查 Lootbox 的 GameObject 或其父节点是否有 CharacterMainControl 组件
                 CharacterMainControl character = lootbox.GetComponent<CharacterMainControl>();
                 if (character == null)
                 {
@@ -1563,7 +1582,35 @@ namespace DuckovESP
                 if (character != null)
                 {
                     // 是人物身上的 Lootbox（如背包、装备栏）
+                    // 特别地，玩家自身的 Lootbox 也要过滤掉
                     return true;
+                }
+                
+                // 检查 Inventory 是否属于人物装备
+                Inventory inventory = lootbox.Inventory;
+                if (inventory != null)
+                {
+                    // 尝试获取人物组件
+                    CharacterMainControl characterFromInventory = inventory.GetComponent<CharacterMainControl>();
+                    if (characterFromInventory == null)
+                    {
+                        characterFromInventory = inventory.GetComponentInParent<CharacterMainControl>();
+                    }
+                    
+                    if (characterFromInventory != null)
+                    {
+                        return true;
+                    }
+                    
+                    // 检查是否是宠物背包
+                    try
+                    {
+                        if (PetProxy.PetInventory != null && inventory == PetProxy.PetInventory)
+                        {
+                            return true; // 是宠物背包，过滤掉
+                        }
+                    }
+                    catch { }
                 }
                 
                 // 检查 GameObject 名字，人物相关的通常有特定命名
@@ -1572,9 +1619,27 @@ namespace DuckovESP
                     objName.Contains("player") || 
                     objName.Contains("backpack") ||
                     objName.Contains("equipment") ||
-                    objName.Contains("inventory_character"))
+                    objName.Contains("inventory_character") ||
+                    objName.Contains("equipment_inventory") ||
+                    objName.Contains("backpack_inventory"))
                 {
                     return true;
+                }
+                
+                // 检查是否在游戏中已知的人物装备容器名称
+                Transform parent = lootbox.transform.parent;
+                int levels = 0;
+                while (parent != null && levels < 5)
+                {
+                    string parentName = parent.name.ToLower();
+                    if (parentName.Contains("character") || 
+                        parentName.Contains("player") || 
+                        parentName.Contains("humanoid"))
+                    {
+                        return true;
+                    }
+                    parent = parent.parent;
+                    levels++;
                 }
                 
                 // 不是人物身上的，是独立箱子
