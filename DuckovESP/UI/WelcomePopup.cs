@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using DuckovESP.Utils.Localization;
 
 namespace DuckovESP.UI
 {
@@ -127,19 +128,19 @@ namespace DuckovESP.UI
             
             // 标题
             GUILayout.Space(10);
-            GUILayout.Label("欢迎使用 DuckovESP v2.6", _titleStyle);
+            GUILayout.Label(LocalizationManager.Get("Welcome.Title"), _titleStyle);
             GUILayout.Space(5);
-            GUILayout.Label("🎉 重大更新：无后座力 + 无头Boss修复！", _headerStyle);
+            GUILayout.Label(LocalizationManager.Get("Welcome.Subtitle"), _headerStyle);
             GUILayout.Space(20);
             
             // 滚动区域
             _scrollPosition = GUILayout.BeginScrollView(_scrollPosition, GUILayout.ExpandHeight(true));
             
             // v2.0 修复内容
-            GUILayout.Label("🔧 v2.6 重大修复", _headerStyle);
+            GUILayout.Label(LocalizationManager.Get("Welcome.SectionMajorFixes"), _headerStyle);
             GUILayout.Space(5);
             GUILayout.Label(
-                "本版本引入无后座力功能和无头Boss检测改进，提供更强大的辅助体验：",
+                LocalizationManager.Get("Welcome.FixesDescription"),
                 _contentStyle
             );
             GUILayout.Space(5);
@@ -147,40 +148,39 @@ namespace DuckovESP.UI
             GUILayout.Space(15);
             
             // 简介
-            GUILayout.Label("📋 关于 DuckovESP", _headerStyle);
+            GUILayout.Label(LocalizationManager.Get("Welcome.SectionAbout"), _headerStyle);
             GUILayout.Space(5);
             GUILayout.Label(
-                "DuckovESP 是一款功能强大的 Duckov 游戏辅助工具，提供 ESP 透视、自动瞄准、自动扳机、作弊功能等多种增强体验。",
+                LocalizationManager.Get("Welcome.AboutDescription"),
                 _contentStyle
             );
             GUILayout.Space(15);
             
             // 主要功能
-            GUILayout.Label("⭐ 主要功能", _headerStyle);
+            GUILayout.Label(LocalizationManager.Get("Welcome.SectionFeatures"), _headerStyle);
             GUILayout.Space(5);
             DrawFeatureList();
             GUILayout.Space(15);
             
             // 快捷键说明
-            GUILayout.Label("⌨️ 快捷键说明", _headerStyle);
+            GUILayout.Label(LocalizationManager.Get("Welcome.SectionHotkeys"), _headerStyle);
             GUILayout.Space(5);
-            GUILayout.Label("注意：所有快捷键都需要按住 Shift 键才能生效！", _hotkeyStyle);
+            GUILayout.Label(LocalizationManager.Get("Welcome.HotkeyWarning"), _hotkeyStyle);
             GUILayout.Space(5);
             DrawHotkeyList();
             GUILayout.Space(15);
             
             // 使用提示
-            GUILayout.Label("💡 使用提示", _headerStyle);
+            GUILayout.Label(LocalizationManager.Get("Welcome.SectionTips"), _headerStyle);
             GUILayout.Space(5);
             DrawTips();
             GUILayout.Space(15);
             
             // 免责声明
-            GUILayout.Label("⚠️ 免责声明", _headerStyle);
+            GUILayout.Label(LocalizationManager.Get("Welcome.SectionDisclaimer"), _headerStyle);
             GUILayout.Space(5);
             GUILayout.Label(
-                "本工具仅供学习和研究使用。使用本工具可能违反游戏服务条款，可能导致账号被封禁。" +
-                "使用本工具的一切后果由使用者自行承担，作者不承担任何责任。",
+                LocalizationManager.Get("Welcome.DisclaimerText"),
                 _contentStyle
             );
             
@@ -190,7 +190,7 @@ namespace DuckovESP.UI
             GUILayout.Space(10);
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("我已了解，开始使用", GUILayout.Width(200), GUILayout.Height(40)))
+            if (GUILayout.Button(LocalizationManager.Get("Welcome.ButtonStart"), GUILayout.Width(200), GUILayout.Height(40)))
             {
                 Hide();
             }
@@ -207,16 +207,16 @@ namespace DuckovESP.UI
         {
             string[] fixes = new[]
             {
-                "✅ 无后座力功能 (v2.6 新增) - 消除所有武器后座力",
-                "✅ 无头Boss检测改进 - 对暴走街机等无头敌人有效",
-                "✅ 自动瞄准功能完全重构 - 基于Mod_Aimbot的优秀实现",
-                "✅ 自动扳机功能重新实现 - 使用子弹传送，在基地中自动禁用",
-                "✅ 秒杀功能修复 - 对所有武器生效（枪械和近战）",
-                "✅ 无限子弹修复 - 不再出现伤害问题",
-                "✅ 物品颜色系统优化 - 价值颜色与其他功能完美融合",
-                "✅ 露天物品标记 - 地面物品现在有连线和地图标记",
-                "✅ 性能优化 - 减少96%的对象扫描调用",
-                "✅ 缓存系统 - 大幅降低CPU占用和内存压力"
+                LocalizationManager.Get("Welcome.Fix1"),
+                LocalizationManager.Get("Welcome.Fix2"),
+                LocalizationManager.Get("Welcome.Fix3"),
+                LocalizationManager.Get("Welcome.Fix4"),
+                LocalizationManager.Get("Welcome.Fix5"),
+                LocalizationManager.Get("Welcome.Fix6"),
+                LocalizationManager.Get("Welcome.Fix7"),
+                LocalizationManager.Get("Welcome.Fix8"),
+                LocalizationManager.Get("Welcome.Fix9"),
+                LocalizationManager.Get("Welcome.Fix10")
             };
             
             foreach (var fix in fixes)
@@ -229,13 +229,13 @@ namespace DuckovESP.UI
         {
             string[] features = new[]
             {
-                "• ESP 透视：显示敌人、物品、任务物品位置和信息",
-                "• 自动瞄准：智能锁定敌人头部，自动跟踪目标",
-                "• 自动扳机：检测到目标自动开火，子弹传送无视墙体",
-                "• 无后座力：消除武器后座力，稳定射击 ⭐ 新功能",
-                "• 敌人列表：实时显示所有敌人的距离和状态",
-                "• 作弊功能：无敌、秒杀、速度提升、无限资源等",
-                "• 配置系统：自定义所有功能的参数和快捷键"
+                LocalizationManager.Get("Welcome.Feature1"),
+                LocalizationManager.Get("Welcome.Feature2"),
+                LocalizationManager.Get("Welcome.Feature3"),
+                LocalizationManager.Get("Welcome.Feature4"),
+                LocalizationManager.Get("Welcome.Feature5"),
+                LocalizationManager.Get("Welcome.Feature6"),
+                LocalizationManager.Get("Welcome.Feature7")
             };
             
             foreach (var feature in features)
@@ -248,15 +248,15 @@ namespace DuckovESP.UI
         {
             var hotkeys = new[]
             {
-                ("Shift + F5", "打开/关闭配置菜单"),
-                ("Shift + F6", "打开/关闭敌人列表"),
-                ("Shift + F7", "切换无敌模式"),
-                ("Shift + F8", "切换一击必杀"),
-                ("Shift + F9", "切换速度提升"),
-                ("Shift + F10", "切换无限负重"),
-                ("Shift + F11", "切换无限子弹"),
-                ("Shift + F12", "切换无限耐力"),
-                ("鼠标右键", "自动瞄准（可在配置中修改）")
+                (LocalizationManager.Get("Welcome.Hotkey1Key"), LocalizationManager.Get("Welcome.Hotkey1Desc")),
+                (LocalizationManager.Get("Welcome.Hotkey2Key"), LocalizationManager.Get("Welcome.Hotkey2Desc")),
+                (LocalizationManager.Get("Welcome.Hotkey3Key"), LocalizationManager.Get("Welcome.Hotkey3Desc")),
+                (LocalizationManager.Get("Welcome.Hotkey4Key"), LocalizationManager.Get("Welcome.Hotkey4Desc")),
+                (LocalizationManager.Get("Welcome.Hotkey5Key"), LocalizationManager.Get("Welcome.Hotkey5Desc")),
+                (LocalizationManager.Get("Welcome.Hotkey6Key"), LocalizationManager.Get("Welcome.Hotkey6Desc")),
+                (LocalizationManager.Get("Welcome.Hotkey7Key"), LocalizationManager.Get("Welcome.Hotkey7Desc")),
+                (LocalizationManager.Get("Welcome.Hotkey8Key"), LocalizationManager.Get("Welcome.Hotkey8Desc")),
+                (LocalizationManager.Get("Welcome.Hotkey9Key"), LocalizationManager.Get("Welcome.Hotkey9Desc"))
             };
             
             foreach (var (key, desc) in hotkeys)
@@ -272,13 +272,13 @@ namespace DuckovESP.UI
         {
             string[] tips = new[]
             {
-                "1. 无后座力功能在配置菜单中启用（Shift+F5 打开配置）",
-                "2. 无头Boss（如暴走街机）现在可以正确瞄准身体部位",
-                "3. 自动瞄准和自动扳机需要在配置中分别启用",
-                "4. 自动扳机在基地内会自动禁用，保持安全",
-                "5. 可以在配置菜单中自定义所有快捷键和功能参数",
-                "6. ESP 绘制可能影响性能，可根据需要调整绘制范围",
-                "7. 建议在单人模式或私服中使用，避免影响其他玩家体验"
+                LocalizationManager.Get("Welcome.Tip1"),
+                LocalizationManager.Get("Welcome.Tip2"),
+                LocalizationManager.Get("Welcome.Tip3"),
+                LocalizationManager.Get("Welcome.Tip4"),
+                LocalizationManager.Get("Welcome.Tip5"),
+                LocalizationManager.Get("Welcome.Tip6"),
+                LocalizationManager.Get("Welcome.Tip7")
             };
             
             foreach (var tip in tips)

@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using DuckovESP.Utils.Localization;
 
 namespace DuckovESP
 {
@@ -18,9 +21,37 @@ namespace DuckovESP
         
         private ESPConfig _config;
         
+        // Language selector dropdown
+        private string[] _languageCodes = new string[] { };
+        private string[] _languageNames = new string[] { };
+        private int _selectedLanguageIndex = 0;
+        private bool _showLanguageDropdown = false;
+        
         public ESPConfigMenu(ESPConfig config)
         {
             _config = config;
+            InitializeLanguageOptions();
+        }
+        
+        private void InitializeLanguageOptions()
+        {
+            var supportedLanguages = LocalizationManager.GetSupportedLanguages();
+            _languageCodes = new string[supportedLanguages.Count()];
+            _languageNames = new string[supportedLanguages.Count()];
+            
+            int index = 0;
+            foreach (var langCode in supportedLanguages)
+            {
+                _languageCodes[index] = langCode;
+                _languageNames[index] = LocalizationManager.GetLanguageDisplayNameByCode(langCode);
+                
+                if (langCode == LocalizationManager.GetCurrentLanguage())
+                {
+                    _selectedLanguageIndex = index;
+                }
+                
+                index++;
+            }
         }
         
         public bool IsMenuOpen => _showMenu;
@@ -28,7 +59,11 @@ namespace DuckovESP
         public void ToggleMenu()
         {
             _showMenu = !_showMenu;
-            Debug.Log($"DuckovESP: 配置菜单 {(_showMenu ? "打开" : "关闭")}");
+            if (!_showMenu)
+            {
+                _showLanguageDropdown = false; // Close dropdown when menu is closed
+            }
+            Debug.Log(LocalizationManager.Get("UI.ConfigMenu.MenuToggled", ("status", _showMenu ? "打开" : "关闭")));
         }
         
         public void DrawMenu()
@@ -42,7 +77,7 @@ namespace DuckovESP
                 999999, 
                 _menuRect, 
                 DrawMenuWindow, 
-                "DuckovESP 配置菜单 [⚠️ 包含作弊功能]", 
+                LocalizationManager.Get("UI.Menu.Title"), 
                 _windowStyle
             );
         }
@@ -74,237 +109,273 @@ namespace DuckovESP
         {
             GUILayout.BeginVertical();
             
+            // 语言选择下拉框（放在最顶部）
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(LocalizationManager.Get("Language.CurrentLanguage", ("lang", LocalizationManager.GetCurrentLanguageName())), _labelStyle, GUILayout.Width(150));
+            
+            // Draw dropdown button
+            if (GUILayout.Button($"▼ {_languageNames[_selectedLanguageIndex]}", _buttonStyle, GUILayout.Width(150)))
+            {
+                _showLanguageDropdown = !_showLanguageDropdown;
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            // Draw dropdown options
+            if (_showLanguageDropdown && _languageNames.Length > 0)
+            {
+                GUILayout.BeginVertical(GUI.skin.box);
+                for (int i = 0; i < _languageNames.Length; i++)
+                {
+                    if (GUILayout.Button(_languageNames[i], _buttonStyle, GUILayout.Height(25)))
+                    {
+                        if (_selectedLanguageIndex != i)
+                        {
+                            _selectedLanguageIndex = i;
+                            LocalizationManager.SetLanguage(_languageCodes[i]);
+                            Debug.Log(LocalizationManager.Get("Language.SwitchedTo", ("lang", _languageNames[i])));
+                            // Re-initialize language options to update display names
+                            InitializeLanguageOptions();
+                        }
+                        _showLanguageDropdown = false;
+                    }
+                }
+                GUILayout.EndVertical();
+            }
+            
+            GUILayout.Space(10);
+            
             _scrollPosition = GUILayout.BeginScrollView(_scrollPosition, GUILayout.Height(650)); // 增加高度以容纳敌人ESP选项
             
             // 标题
-            GUILayout.Label("=== 3D ESP 设置 ===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.ESP3DSettings"), _labelStyle);
             GUILayout.Space(5);
             
             // 3D ESP开关
-            _config.Enable3DESP = GUILayout.Toggle(_config.Enable3DESP, " 启用3D ESP", _toggleStyle);
+            _config.Enable3DESP = GUILayout.Toggle(_config.Enable3DESP, LocalizationManager.Get("UI.Toggle.Enable3DESP"), _toggleStyle);
             
             // 最大距离
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"最大显示距离: {_config.MaxESPDistance:F0}m", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.MaxDisplayDistance") + $": {_config.MaxESPDistance:F0}m", _labelStyle, GUILayout.Width(200));
             _config.MaxESPDistance = GUILayout.HorizontalSlider(_config.MaxESPDistance, 10f, 500f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 字体大小
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"字体大小: {_config.ESPFontSize}", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.FontSize") + $": {_config.ESPFontSize}", _labelStyle, GUILayout.Width(200));
             _config.ESPFontSize = (int)GUILayout.HorizontalSlider(_config.ESPFontSize, 8, 24, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 最大显示物品数
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"最大显示物品数: {_config.MaxDisplayItems}", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.MaxDisplayItems") + $": {_config.MaxDisplayItems}", _labelStyle, GUILayout.Width(200));
             _config.MaxDisplayItems = (int)GUILayout.HorizontalSlider(_config.MaxDisplayItems, 1, 10, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 显示选项
-            _config.ShowDistance = GUILayout.Toggle(_config.ShowDistance, " 显示距离", _toggleStyle);
-            _config.ShowConnectLine = GUILayout.Toggle(_config.ShowConnectLine, " 显示连接线", _toggleStyle);
+            _config.ShowDistance = GUILayout.Toggle(_config.ShowDistance, LocalizationManager.Get("UI.Toggle.ShowDistance"), _toggleStyle);
+            _config.ShowConnectLine = GUILayout.Toggle(_config.ShowConnectLine, LocalizationManager.Get("UI.Toggle.ShowConnectLine"), _toggleStyle);
             
             GUILayout.Space(10);
-            GUILayout.Label("=== 过滤设置 ===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.FilterSettings"), _labelStyle);
             GUILayout.Space(5);
             
             // 3D ESP品质过滤
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"3D ESP最小品质: {GetQualityName(_config.MinQualityFilter3D)}", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.Quality3DMinLabel", ("quality", GetQualityName(_config.MinQualityFilter3D))), _labelStyle, GUILayout.Width(200));
             _config.MinQualityFilter3D = (int)GUILayout.HorizontalSlider(_config.MinQualityFilter3D, 0, 6, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
-            _config.ShowEmptyBoxes = GUILayout.Toggle(_config.ShowEmptyBoxes, " 显示空箱子", _toggleStyle);
+            _config.ShowEmptyBoxes = GUILayout.Toggle(_config.ShowEmptyBoxes, LocalizationManager.Get("UI.Toggle.ShowEmptyBoxes"), _toggleStyle);
             
             GUILayout.Space(10);
-            GUILayout.Label("=== 小地图标记设置 ===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.MapMarkerSettings"), _labelStyle);
             GUILayout.Space(5);
             
             // 小地图标记开关
-            _config.EnableMapMarkers = GUILayout.Toggle(_config.EnableMapMarkers, " 启用小地图标记", _toggleStyle);
+            _config.EnableMapMarkers = GUILayout.Toggle(_config.EnableMapMarkers, LocalizationManager.Get("UI.Toggle.EnableMapMarkers"), _toggleStyle);
             
             // 小地图品质过滤
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"地图标记最小品质: {GetQualityName(_config.MinQualityForMapMarkers)}", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.MapMarkerQualityLabel", ("quality", GetQualityName(_config.MinQualityForMapMarkers))), _labelStyle, GUILayout.Width(200));
             _config.MinQualityForMapMarkers = (int)GUILayout.HorizontalSlider(_config.MinQualityForMapMarkers, 0, 6, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             GUILayout.Space(10);
-            GUILayout.Label("=== 外观设置 ===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.AppearanceSettings"), _labelStyle);
             GUILayout.Space(5);
             
             // 背景透明度
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"背景透明度: {_config.BackgroundAlpha:F2}", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.BackgroundAlphaLabel", ("value:F2", _config.BackgroundAlpha)), _labelStyle, GUILayout.Width(200));
             _config.BackgroundAlpha = GUILayout.HorizontalSlider(_config.BackgroundAlpha, 0f, 1f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 边框粗细
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"边框粗细: {_config.BorderThickness:F1}px", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.BorderThicknessLabel", ("value:F1", _config.BorderThickness)), _labelStyle, GUILayout.Width(200));
             _config.BorderThickness = GUILayout.HorizontalSlider(_config.BorderThickness, 1f, 5f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             GUILayout.Space(10);
-            GUILayout.Label("=== 🎯 敌人ESP设置 ===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.EnemyESPSettings"), _labelStyle);
             GUILayout.Space(5);
             
             // 启用敌人ESP
-            _config.EnableEnemyESP = GUILayout.Toggle(_config.EnableEnemyESP, " 启用敌人ESP", _toggleStyle);
+            _config.EnableEnemyESP = GUILayout.Toggle(_config.EnableEnemyESP, LocalizationManager.Get("UI.Toggle.EnableEnemyESP"), _toggleStyle);
             
             // 最大距离
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"敌人ESP最大距离: {_config.MaxEnemyESPDistance:F0}m", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.MaxEnemyDistanceLabel", ("value:F0", _config.MaxEnemyESPDistance)), _labelStyle, GUILayout.Width(200));
             _config.MaxEnemyESPDistance = GUILayout.HorizontalSlider(_config.MaxEnemyESPDistance, 50f, 500f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 显示选项
-            _config.ShowEnemyHealth = GUILayout.Toggle(_config.ShowEnemyHealth, " 显示敌人血量", _toggleStyle);
-            _config.ShowEnemyWeapon = GUILayout.Toggle(_config.ShowEnemyWeapon, " 显示敌人武器", _toggleStyle);
-            _config.ShowEnemyValue = GUILayout.Toggle(_config.ShowEnemyValue, " 显示库存价值", _toggleStyle);
+            _config.ShowEnemyHealth = GUILayout.Toggle(_config.ShowEnemyHealth, LocalizationManager.Get("UI.Toggle.ShowEnemyHealth"), _toggleStyle);
+            _config.ShowEnemyWeapon = GUILayout.Toggle(_config.ShowEnemyWeapon, LocalizationManager.Get("UI.Toggle.ShowEnemyWeapon"), _toggleStyle);
+            _config.ShowEnemyValue = GUILayout.Toggle(_config.ShowEnemyValue, LocalizationManager.Get("UI.Toggle.ShowEnemyValue"), _toggleStyle);
             
             // 连线设置
-            _config.EnableEnemyLines = GUILayout.Toggle(_config.EnableEnemyLines, " 启用敌人连线", _toggleStyle);
+            _config.EnableEnemyLines = GUILayout.Toggle(_config.EnableEnemyLines, LocalizationManager.Get("UI.Toggle.EnableEnemyLines"), _toggleStyle);
             
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"连线最大距离: {_config.MaxEnemyLineDistance:F0}m", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.MaxEnemyLineDistanceLabel", ("value:F0", _config.MaxEnemyLineDistance)), _labelStyle, GUILayout.Width(200));
             _config.MaxEnemyLineDistance = GUILayout.HorizontalSlider(_config.MaxEnemyLineDistance, 20f, 200f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"连线粗细: {_config.EnemyLineWidth:F1}px", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.EnemyLineWidthLabel", ("value:F1", _config.EnemyLineWidth)), _labelStyle, GUILayout.Width(200));
             _config.EnemyLineWidth = GUILayout.HorizontalSlider(_config.EnemyLineWidth, 1f, 5f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 警报设置
             GUILayout.Space(5);
-            _config.EnableHighValueAlert = GUILayout.Toggle(_config.EnableHighValueAlert, " 高价值目标警报", _toggleStyle);
+            _config.EnableHighValueAlert = GUILayout.Toggle(_config.EnableHighValueAlert, LocalizationManager.Get("UI.Toggle.EnableHighValueAlert"), _toggleStyle);
             
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"高价值阈值: ¥{_config.HighValueThreshold:N0}", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.HighValueThresholdLabel", ("value:N0", _config.HighValueThreshold)), _labelStyle, GUILayout.Width(200));
             _config.HighValueThreshold = (long)GUILayout.HorizontalSlider(_config.HighValueThreshold, 10000f, 200000f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
-            _config.EnableTraderAlert = GUILayout.Toggle(_config.EnableTraderAlert, " 商人检测警报", _toggleStyle);
+            _config.EnableTraderAlert = GUILayout.Toggle(_config.EnableTraderAlert, LocalizationManager.Get("UI.Toggle.EnableTraderAlert"), _toggleStyle);
             
             GUILayout.Space(5);
-            GUILayout.Label($"提示: 按 {_config.EnemyListToggleKey} 打开敌人列表窗口", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.EnemyListHint", ("key", _config.EnemyListToggleKey)), _labelStyle);
             
             GUILayout.Space(10);
-            GUILayout.Label("=== 📦 任务物品&建筑材料 ===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.QuestItemSettings"), _labelStyle);
             GUILayout.Space(5);
             
             // 任务物品高亮
-            _config.HighlightQuestItems = GUILayout.Toggle(_config.HighlightQuestItems, " 高亮任务物品", _toggleStyle);
+            _config.HighlightQuestItems = GUILayout.Toggle(_config.HighlightQuestItems, LocalizationManager.Get("UI.Toggle.HighlightQuestItems"), _toggleStyle);
             
             // 建筑材料高亮
-            _config.HighlightBuildingMaterials = GUILayout.Toggle(_config.HighlightBuildingMaterials, " 高亮建筑材料", _toggleStyle);
+            _config.HighlightBuildingMaterials = GUILayout.Toggle(_config.HighlightBuildingMaterials, LocalizationManager.Get("UI.Toggle.HighlightBuildingMaterials"), _toggleStyle);
             
             GUILayout.Space(5);
-            GUILayout.Label("说明: 自动标记当前任务所需物品和未建造建筑的材料", _labelStyle);
-            GUILayout.Label("使用特殊边框颜色（加粗）来突出显示", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.QuestItemDescription"), _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.QuestItemHighlight"), _labelStyle);
             
             GUILayout.Space(10);
-            GUILayout.Label("=== ⚠️ 自动瞄准设置（Aimbot）⚠️ ===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.AimbotSettings"), _labelStyle);
             GUILayout.Space(5);
             
             // 启用自动瞄准
-            _config.EnableAimbot = GUILayout.Toggle(_config.EnableAimbot, " 启用自动瞄准", _toggleStyle);
+            _config.EnableAimbot = GUILayout.Toggle(_config.EnableAimbot, LocalizationManager.Get("UI.Toggle.EnableAimbot"), _toggleStyle);
             
             // 瞄准FOV
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"瞄准视野角度: {_config.AimbotFOV:F0}°", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.AimbotFOVLabel", ("value:F0", _config.AimbotFOV)), _labelStyle, GUILayout.Width(200));
             _config.AimbotFOV = GUILayout.HorizontalSlider(_config.AimbotFOV, 5f, 90f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 平滑度
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"平滑度: {_config.AimbotSmoothness:F1}", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.AimbotSmoothnessLabel", ("value:F1", _config.AimbotSmoothness)), _labelStyle, GUILayout.Width(200));
             _config.AimbotSmoothness = GUILayout.HorizontalSlider(_config.AimbotSmoothness, 1f, 20f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 最大距离
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"最大瞄准距离: {_config.AimbotMaxDistance:F0}m", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.AimbotMaxDistanceLabel", ("value:F0", _config.AimbotMaxDistance)), _labelStyle, GUILayout.Width(200));
             _config.AimbotMaxDistance = GUILayout.HorizontalSlider(_config.AimbotMaxDistance, 50f, 500f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 瞄准选项
-            _config.AimbotAimAtHead = GUILayout.Toggle(_config.AimbotAimAtHead, " 瞄准头部（否则瞄准身体）", _toggleStyle);
-            _config.AimbotPredictMovement = GUILayout.Toggle(_config.AimbotPredictMovement, " 预测目标移动", _toggleStyle);
-            _config.AimbotIgnoreWalls = GUILayout.Toggle(_config.AimbotIgnoreWalls, " 忽略墙壁（穿墙瞄准）", _toggleStyle);
-            _config.AimbotIgnoreTeamCheck = GUILayout.Toggle(_config.AimbotIgnoreTeamCheck, " [测试] 忽略队伍检查（可攻击友军）", _toggleStyle);
+            _config.AimbotAimAtHead = GUILayout.Toggle(_config.AimbotAimAtHead, LocalizationManager.Get("UI.Toggle.AimbotAimAtHead"), _toggleStyle);
+            _config.AimbotPredictMovement = GUILayout.Toggle(_config.AimbotPredictMovement, LocalizationManager.Get("UI.Toggle.AimbotPredictMovement"), _toggleStyle);
+            _config.AimbotIgnoreWalls = GUILayout.Toggle(_config.AimbotIgnoreWalls, LocalizationManager.Get("UI.Toggle.AimbotIgnoreWalls"), _toggleStyle);
+            _config.AimbotIgnoreTeamCheck = GUILayout.Toggle(_config.AimbotIgnoreTeamCheck, LocalizationManager.Get("UI.Toggle.AimbotIgnoreTeamCheck"), _toggleStyle);
             
             if (_config.AimbotIgnoreTeamCheck)
             {
-                GUILayout.Label("  ⚠️ 测试模式：将攻击所有目标（包括友军）", _labelStyle);
+                GUILayout.Label(LocalizationManager.Get("UI.Warning.TestMode"), _labelStyle);
             }
             
             GUILayout.Space(10);
-            GUILayout.Label("=== ⚠️ 自动扳机设置（Trigger Bot）⚠️ ===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.TriggerBotSettings"), _labelStyle);
             GUILayout.Space(5);
             
             // 启用自动扳机（提示依赖关系）
             bool originalTriggerBot = _config.EnableTriggerBot;
-            _config.EnableTriggerBot = GUILayout.Toggle(_config.EnableTriggerBot, " 启用自动扳机", _toggleStyle);
+            _config.EnableTriggerBot = GUILayout.Toggle(_config.EnableTriggerBot, LocalizationManager.Get("UI.Toggle.EnableTriggerBot"), _toggleStyle);
             
             // 如果启用自动扳机但自动瞄准未启用，显示警告
             if (_config.EnableTriggerBot && !_config.EnableAimbot)
             {
-                GUILayout.Label("⚠️ 警告: 自动扳机需要启用自动瞄准才能工作！", _labelStyle);
+                GUILayout.Label(LocalizationManager.Get("UI.Warning.TriggerBotRequiresAimbot"), _labelStyle);
                 // 自动启用自动瞄准
                 if (!originalTriggerBot && _config.EnableTriggerBot)
                 {
                     _config.EnableAimbot = true;
-                    GUILayout.Label("✓ 已自动启用自动瞄准", _labelStyle);
+                    GUILayout.Label(LocalizationManager.Get("UI.Warning.AimbotAutoEnabled"), _labelStyle);
                 }
             }
             
             GUILayout.Space(5);
-            GUILayout.Label("说明: 自动扳机使用自动瞄准的目标检测", _labelStyle);
-            GUILayout.Label("范围内有敌人时自动开火", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.TriggerBotDescription"), _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.TriggerBotRangeDesc"), _labelStyle);
             
             // 扳机延迟
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"触发延迟: {_config.TriggerBotDelay:F3}秒", _labelStyle, GUILayout.Width(200));
+            GUILayout.Label(LocalizationManager.Get("UI.Label.TriggerBotDelayLabel", ("value:F3", _config.TriggerBotDelay)), _labelStyle, GUILayout.Width(200));
             _config.TriggerBotDelay = GUILayout.HorizontalSlider(_config.TriggerBotDelay, 0f, 0.5f, GUILayout.Width(200));
             GUILayout.EndHorizontal();
             
             // 扳机选项
-            _config.TriggerBotOnlyADS = GUILayout.Toggle(_config.TriggerBotOnlyADS, " 仅在瞄准时触发", _toggleStyle);
-            _config.TriggerBotTeamCheck = GUILayout.Toggle(_config.TriggerBotTeamCheck, " 检查队友（避免误伤）", _toggleStyle);
+            _config.TriggerBotOnlyADS = GUILayout.Toggle(_config.TriggerBotOnlyADS, LocalizationManager.Get("UI.Toggle.TriggerBotOnlyADS"), _toggleStyle);
+            _config.TriggerBotTeamCheck = GUILayout.Toggle(_config.TriggerBotTeamCheck, LocalizationManager.Get("UI.Toggle.TriggerBotTeamCheck"), _toggleStyle);
             
             GUILayout.Space(5);
-            GUILayout.Label("💡 提示: TriggerBot 会自动使用子弹传送模式，无视墙体", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Warning.TriggerBotTip"), _labelStyle);
             
             GUILayout.Space(10);
-            GUILayout.Label("=== ⚠️ 无后座力设置（No Recoil）⚠️ ===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.NoRecoilSettings"), _labelStyle);
             GUILayout.Space(5);
             
             // 启用无后座力
-            _config.EnableNoRecoil = GUILayout.Toggle(_config.EnableNoRecoil, " 启用无后座力", _toggleStyle);
+            _config.EnableNoRecoil = GUILayout.Toggle(_config.EnableNoRecoil, LocalizationManager.Get("UI.Toggle.EnableNoRecoil"), _toggleStyle);
             
             GUILayout.Space(5);
-            GUILayout.Label("说明: 消除所有武器的后座力，射击时枪械不会抖动", _labelStyle);
-            GUILayout.Label("工作原理: 修改角色后座力控制和武器属性", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.NoRecoilDescription"), _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.NoRecoilMechanism"), _labelStyle);
             
             GUILayout.Space(10);
-            GUILayout.Label("=== 🎮 作弊功能（快捷键）===", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Menu.CheatFunctions"), _labelStyle);
             GUILayout.Space(5);
             
-            GUILayout.Label("⚠️ 注意：所有快捷键都需要按住 Shift 键！", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.CheatKeysWarning"), _labelStyle);
             GUILayout.Space(3);
             
-            GUILayout.Label($"• Shift + F7 = 无敌模式（保持满血）", _labelStyle);
-            GUILayout.Label($"• Shift + F8 = 一击必杀（需要自动瞄准启用）", _labelStyle);
-            GUILayout.Label($"• Shift + F9 = 速度提升（{2.5f}x 跑步速度）", _labelStyle);
-            GUILayout.Label($"• Shift + F10 = 无限负重（99万kg）", _labelStyle);
-            GUILayout.Label($"• Shift + F11 = 无限子弹（弹匣永不减少）", _labelStyle);
-            GUILayout.Label($"• Shift + F12 = 无限耐力（永不疲劳）", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.CheatKeys.GodMode"), _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.CheatKeys.OneHitKill"), _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.CheatKeys.SpeedBoost"), _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.CheatKeys.InfiniteWeight"), _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.CheatKeys.InfiniteAmmo"), _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.CheatKeys.InfiniteStamina"), _labelStyle);
             
             GUILayout.Space(5);
-            GUILayout.Label("⚠️ 警告: 作弊功能会影响游戏平衡性", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.CheatWarning"), _labelStyle);
             
             GUILayout.EndScrollView();
             
@@ -313,17 +384,17 @@ namespace DuckovESP
             // 按钮
             GUILayout.BeginHorizontal();
             
-            if (GUILayout.Button("保存配置", _buttonStyle, GUILayout.Height(30)))
+            if (GUILayout.Button(LocalizationManager.Get("UI.Button.SaveConfig"), _buttonStyle, GUILayout.Height(30)))
             {
                 _config.Save();
             }
             
-            if (GUILayout.Button("重置默认", _buttonStyle, GUILayout.Height(30)))
+            if (GUILayout.Button(LocalizationManager.Get("UI.Button.ResetDefault"), _buttonStyle, GUILayout.Height(30)))
             {
                 _config.ResetToDefault();
             }
             
-            if (GUILayout.Button("关闭", _buttonStyle, GUILayout.Height(30)))
+            if (GUILayout.Button(LocalizationManager.Get("UI.Button.Close"), _buttonStyle, GUILayout.Height(30)))
             {
                 _showMenu = false;
             }
@@ -331,7 +402,7 @@ namespace DuckovESP
             GUILayout.EndHorizontal();
             
             GUILayout.Space(5);
-            GUILayout.Label($"按 Shift + {_config.MenuToggleKey} 打开/关闭此菜单", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.Label.MenuToggleHint", ("key", _config.MenuToggleKey)), _labelStyle);
             
             GUILayout.EndVertical();
             
@@ -342,14 +413,14 @@ namespace DuckovESP
         {
             switch (quality)
             {
-                case 0: return "白色(普通)";
-                case 1: return "绿色(稀有)";
-                case 2: return "蓝色(精良)";
-                case 3: return "紫色(史诗)";
-                case 4: return "橙色(传说)";
-                case 5: return "浅红(神话)";
-                case 6: return "红色(至尊)";
-                default: return "未知";
+                case 0: return LocalizationManager.Get("Quality.WhiteFull");
+                case 1: return LocalizationManager.Get("Quality.GreenFull");
+                case 2: return LocalizationManager.Get("Quality.BlueFull");
+                case 3: return LocalizationManager.Get("Quality.PurpleFull");
+                case 4: return LocalizationManager.Get("Quality.OrangeFull");
+                case 5: return LocalizationManager.Get("Quality.LightRedFull");
+                case 6: return LocalizationManager.Get("Quality.RedFull");
+                default: return LocalizationManager.Get("Quality.Unknown");
             }
         }
         

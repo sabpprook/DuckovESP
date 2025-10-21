@@ -1,181 +1,191 @@
-[h1]DuckovESP - 全功能游戏增强模组 v2.6[/h1]
+[h1]DuckovESP - Full-featured Game Enhancement Mod v2.7[/h1]
+[h1]DuckovESP - 全功能游戏增强模组 v2.7[/h1]
+
+A powerful and performance-optimiz[h2]⚠️ Important Tips / ⚠️ 重要提示[/h2]
+
+[b]Performance Recommendations: / 性能建议：[/b]
+[list]
+[*]If experiencing lag, reduce ESP max distance / 如遇卡顿，降低 ESP 最大距离
+[*]Disable unnecessary features (connection lines, mini-map markers) / 关闭不需要的功能（连线、小地图标记）
+[*]High-density areas may have slight performance impact / 高密度区域可能会有轻微性能影响
+[/list]
+
+[b]Compatibility: / 兼容性：[/b]
+[list]
+[*]Compatible with most mods / 与大部分模组兼容
+[*]Tested and compatible with BossLiveMapMod / 已测试与 BossLiveMapMod 兼容
+[*]If conflicts occur, disable relevant features in config / 如遇冲突，请在配置中禁用相关功能
+[/list]assistance mod
 
 一个功能强大、性能优化的 Duckov 游戏辅助模组
 
 [hr][/hr]
 
-[h2]主要功能[/h2]
+[h2]Main Features / 主要功能[/h2]
 
-[h3]📍 透视系统 (ESP)[/h3]
+[h3]📍 ESP Transparency System (ESP) / 📍 透视系统 (ESP)[/h3]
 [list]
-[*]物品透视：实时显示箱子、掉落物品、任务物品位置
-[*]敌人透视：显示敌人位置、血量、武器、装备价值
-[*]3D标签：游戏画面中显示距离、名称、状态
-[*]连线功能：从玩家到目标的可视连线
-[*]小地图标记：自动在小地图上标记重要物品
+[*]Real-time display of chest, dropped item, quest item locations / 实时显示箱子、掉落物品、任务物品位置
+[*]Enemy transparency: display enemy location, health, weapon, equipment value / 敌人透视：显示敌人位置、血量、武器、装备价值
+[*]3D labels: display distance, name, status in game screen / 3D标签：游戏画面中显示距离、名称、状态
+[*]Connection lines: visual connection lines from player to target / 连线功能：从玩家到目标的可视连线
+[*]Mini-map markers: automatically mark important items on mini-map / 小地图标记：自动在小地图上标记重要物品
 [/list]
 
-[h3]🎯 自动瞄准 (Aimbot)[/h3]
+[h3]🎯 Auto Aim (Aimbot) / 🎯 自动瞄准 (Aimbot)[/h3]
 [list]
-[*]智能锁定：自动锁定最近的敌人头部或身体
-[*]平滑跟踪：可调节的平滑度，模拟真实瞄准
-[*]预测移动：提前计算目标移动轨迹
-[*]穿墙选项：可选择是否瞄准墙后目标
-[*]子弹重定向：射击后自动修正子弹轨迹
-[*]无后座力：稳定瞄准
+[*]Intelligent lock: automatically lock closest enemy head or body / 智能锁定：自动锁定最近的敌人头部或身体
+[*]Smooth tracking: adjustable smoothness, simulates real aiming / 平滑跟踪：可调节的平滑度，模拟真实瞄准
+[*]Movement prediction: calculate target movement trajectory in advance / 预测移动：提前计算目标移动轨迹
+[*]Wall penetration option: choose whether to aim at targets behind walls / 穿墙选项：可选择是否瞄准墙后目标
+[*]Bullet redirection: automatically correct bullet trajectory after shooting / 子弹重定向：射击后自动修正子弹轨迹
+[*]No Recoil: stable aiming / 无后座力：稳定瞄准
 [/list]
 
-[h3]⚡ 自动扳机 (TriggerBot)[/h3]
+[h3]⚡ Auto Trigger (TriggerBot) / ⚡ 自动扳机 (TriggerBot)[/h3]
 [list]
-[*]智能开火：检测到准星对准敌人时自动射击
-[*]子弹传送：子弹直接传送到目标附近，无视墙体
-[*]延迟设置：可调节触发延迟，避免被检测
-[*]瞄准触发：可选择仅在右键瞄准时触发
-[*]友军保护：自动识别队友，避免误伤
+[*]Intelligent fire: automatically shoot when crosshair is on enemy / 智能开火：检测到准星对准敌人时自动射击
+[*]Bullet teleportation: bullet teleports directly to target vicinity, ignores walls / 子弹传送：子弹直接传送到目标附近，无视墙体
+[*]Delay setting: adjustable trigger delay, avoid detection / 延迟设置：可调节触发延迟，避免被检测
+[*]Aiming trigger: choose to trigger only when holding right click / 瞄准触发：可选择仅在右键瞄准时触发
+[*]Teammate protection: automatically identify teammates, avoid friendly fire / 友军保护：自动识别队友，避免误伤
 [/list]
 
-[h3]🛡️ 作弊功能[/h3]
+[h3]🛡️ Cheat Functions / 🛡️ 作弊功能[/h3]
 [list]
-[*]无敌模式 (Shift+F7)：保持满血状态
-[*]一击必杀 (Shift+F8)：所有攻击秒杀敌人
-[*]速度提升 (Shift+F9)：移动速度 2.5 倍
-[*]无限负重 (Shift+F10)：永不超重
-[*]无限子弹 (Shift+F11)：弹药永不耗尽
-[*]无限耐力 (Shift+F12)：无限奔跑
-[/list]
-
-[hr][/hr]
-
-[h2]🚀 v2.6 版本亮点[/h2]
-
-[h3]修复的主要 Bug[/h3]
-[list]
-[*]新增无后座力
-[*]自动瞄准功能完全重写 - 基于优秀的 Mod_Aimbot 实现，修复暴走街机无法爆头的问题
-[*]自动扳机功能重新实现 - 使用子弹传送技术，无视墙体，在基地中关闭
-[*]秒杀功能修复 - 现在对所有武器生效（枪械和近战）
-[*]无限子弹修复 - 不再出现"有子弹但无伤害"的问题
-[*]颜色系统优化 - 物品价值颜色系统与其他功能完美融合
-[*]露天物品标记 - 地面掉落物品现在有连线和地图标记
-[/list]
-
-[h3]性能优化[/h3]
-[list]
-[*]减少 96% 的对象扫描 - 使用智能缓存系统
-[*]降低 95% 的组件查找 - 缓存常用组件引用
-[*]提升 25-50% 的 FPS - 优化扫描频率和绘制调用
-[*]降低 30-40% 的 CPU 占用 - 批处理和延迟更新
+[*]God Mode (Shift+F7): maintain full health / 无敌模式 (Shift+F7)：保持满血状态
+[*]One-Hit Kill (Shift+F8): all attacks one-shot enemies / 一击必杀 (Shift+F8)：所有攻击秒杀敌人
+[*]Speed Boost (Shift+F9): movement speed 2.5x / 速度提升 (Shift+F9)：移动速度 2.5 倍
+[*]Unlimited Carry Capacity (Shift+F10): never overweight / 无限负重 (Shift+F10)：永不超重
+[*]Unlimited Ammo (Shift+F11): ammo never depletes / 无限子弹 (Shift+F11)：弹药永不耗尽
+[*]Unlimited Stamina (Shift+F12): unlimited running / 无限耐力 (Shift+F12)：无限奔跑
 [/list]
 
 [hr][/hr]
 
-[h2]⌨️ 快捷键列表[/h2]
+[h2]🚀 v2.7 Highlights / 🚀 v2.7 版本亮点[/h2]
 
-[b]注意：所有快捷键都需要按住 Shift 键！[/b]
+[h3]✨ New Features / ✨ 新功能[/h3]
+[list]
+[*]Multi-language support - Support Chinese, English, German and more languages / 多语言支持 - 支持中文、英文、德文等多种语言
+[*]Automatic language detection - Auto-select language based on game settings / 自动语言检测 - 根据游戏设置自动选择语言
+[*]Language switcher - Quick switch between all languages using dropdown menu (in config menu) / 语言切换器 - 改进为下拉菜单，支持快速切换所有语言
+[/list]
+
+[h3]✅ Fixed Major Bugs / ✅ 修复的主要 Bug[/h3]
+[list]
+[*]Welcome interface localization - Fixed to display correct translated text instead of config keys / 欢迎界面本地化 - 修复显示正确的翻译文本而非配置键名
+[*]Language selection UI - Improved to dropdown menu, supports quick switching of all languages / 语言选择UI - 改进为下拉菜单，支持快速切换所有语言
+[*]Dynamic text updates - All UI elements now correctly display translations in selected language / 动态文本更新 - 所有UI元素现在正确显示选中语言的翻译
+[/list]
+
+[h3]⚡ Performance Optimization / ⚡ 性能优化[/h3]
+[list]
+[*]Reduced object scanning by 96% - Using intelligent caching system / 减少 96% 的对象扫描 - 使用智能缓存系统
+[*]Reduced component lookup by 95% - Cache frequently used component references / 降低 95% 的组件查找 - 缓存常用组件引用
+[*]Improved FPS by 25-50% - Optimize scanning frequency and rendering calls / 提升 25-50% 的 FPS - 优化扫描频率和绘制调用
+[*]Reduced CPU usage by 30-40% - Batch processing and delayed updates / 降低 30-40% 的 CPU 占用 - 批处理和延迟更新
+[/list]
+
+[hr][/hr]
+
+[h2]⌨️ Hotkeys / ⌨️ 快捷键列表[/h2]
+
+[b]Note: All hotkeys require holding Shift to work! / 注意：所有快捷键都需要按住 Shift 键才能生效！[/b]
 
 [table]
-[tr][th]快捷键[/th][th]功能[/th][/tr]
-[tr][td]Shift + F5[/td][td]打开/关闭配置菜单[/td][/tr]
-[tr][td]Shift + F6[/td][td]打开/关闭敌人列表[/td][/tr]
-[tr][td]Shift + F7[/td][td]切换无敌模式[/td][/tr]
-[tr][td]Shift + F8[/td][td]切换一击必杀[/td][/tr]
-[tr][td]Shift + F9[/td][td]切换速度提升[/td][/tr]
-[tr][td]Shift + F10[/td][td]切换无限负重[/td][/tr]
-[tr][td]Shift + F11[/td][td]切换无限子弹[/td][/tr]
-[tr][td]Shift + F12[/td][td]切换无限耐力[/td][/tr]
-[tr][td]鼠标右键[/td][td]自动瞄准触发键（可配置）[/td][/tr]
+[tr][th]Hotkey / 快捷键[/th][th]Function / 功能[/th][/tr]
+[tr][td]Shift + F5[/td][td]Toggle configuration menu / 打开/关闭配置菜单[/td][/tr]
+[tr][td]Shift + F6[/td][td]Toggle enemy list / 打开/关闭敌人列表[/td][/tr]
+[tr][td]Shift + F7[/td][td]Toggle god mode / 切换无敌模式[/td][/tr]
+[tr][td]Shift + F8[/td][td]Toggle one-hit kill / 切换一击必杀[/td][/tr]
+[tr][td]Shift + F9[/td][td]Toggle speed boost / 切换速度提升[/td][/tr]
+[tr][td]Shift + F10[/td][td]Toggle unlimited carry capacity / 切换无限负重[/td][/tr]
+[tr][td]Shift + F11[/td][td]Toggle unlimited ammo / 切换无限子弹[/td][/tr]
+[tr][td]Shift + F12[/td][td]Toggle unlimited stamina / 切换无限耐力[/td][/tr]
+[tr][td]Right Mouse Button / 鼠标右键[/td][td]Auto aim trigger key (configurable) / 自动瞄准触发键（可配置）[/td][/tr]
 [/table]
 
 [hr][/hr]
 
-[h2]🎨 颜色编码[/h2]
+[h2]🎨 Color Coding / 🎨 颜色编码[/h2]
 
-物品和敌人按价值显示不同颜色：
+Items and enemies display different colors by value:
+
+按价值显示不同颜色：
 [list]
-[*][b]绿色[/b] = 低价值 (< ¥5,000)
-[*][b]黄色[/b] = 中价值 (¥5,000 - ¥20,000)
-[*][b]橙色[/b] = 高价值 (¥20,000 - ¥50,000)
-[*][b]红色[/b] = 超高价值 (> ¥50,000)
-[*][b]青色[/b] = 任务物品
-[*][b]紫色[/b] = 建筑材料
+[*][b]Green / 绿色[/b] = Low value / 低价值 (< ¥5,000)
+[*][b]Yellow / 黄色[/b] = Medium value / 中价值 (¥5,000 - ¥20,000)
+[*][b]Orange / 橙色[/b] = High value / 高价值 (¥20,000 - ¥50,000)
+[*][b]Red / 红色[/b] = Super high value / 超高价值 (> ¥50,000)
+[*][b]Cyan / 青色[/b] = Quest items / 任务物品
+[*][b]Purple / 紫色[/b] = Building materials / 建筑材料
 [/list]
 
 [hr][/hr]
 
-[h2]⚙️ 技术亮点[/h2]
+[h2]⚙️ Technical Highlights / ⚙️ 技术亮点[/h2]
 
-[h3]子弹传送原理[/h3]
-传统方式：枪口 → [墙体阻挡] ❌ → 目标
+[h3]Bullet Teleportation Principle / 子弹传送原理[/h3]
+Traditional method: Gun muzzle → [Wall blocks] ❌ → Target
 传送方式：枪口 → [瞬移] ✅ → 目标附近 → 目标
 
 [list]
-[*]子弹在目标前方 1-2 米生成
-[*]添加随机偏移模拟真实弹道
-[*]自动设置方向和速度
-[*]重置飞行距离从新位置开始
+[*]Bullets spawn 1-2 meters in front of target / 子弹在目标前方 1-2 米生成
+[*]Add random offset to simulate real ballistics / 添加随机偏移模拟真实弹道
+[*]Automatically set direction and velocity / 自动设置方向和速度
+[*]Reset flight distance from new position / 重置飞行距离从新位置开始
 [/list]
 
-[h3]性能优化策略[/h3]
+[h3]Performance Optimization Strategy / 性能优化策略[/h3]
 [list]
-[*]1.5 秒缓存周期 - 目标列表定期更新
-[*]0.3 秒 ESP 更新 - 平衡流畅度和性能
-[*]2 秒物品扫描 - 降低 CPU 占用
-[*]批量绘制 - 使用 GL 减少 DrawCall
+[*]1.5 second cache cycle - Target list updates regularly / 1.5 秒缓存周期 - 目标列表定期更新
+[*]0.3 second ESP update - Balance smoothness and performance / 0.3 秒 ESP 更新 - 平衡流畅度和性能
+[*]2 second item scan - Reduce CPU usage / 2 秒物品扫描 - 降低 CPU 占用
+[*]Batch rendering - Use GL to reduce DrawCall / 批量绘制 - 使用 GL 减少 DrawCall
 [/list]
 
 [hr][/hr]
 
-[h2]⚠️ 重要提示[/h2]
+[h2]🙏 Credits & Thanks / 🙏 致谢[/h2]
 
-[b]性能建议：[/b]
-[list]
-[*]如遇卡顿，降低 ESP 最大距离
-[*]关闭不需要的功能（连线、小地图标记）
-[*]高密度区域可能有轻微性能影响
-[/list]
-
-[b]兼容性：[/b]
-[list]
-[*]与大部分模组兼容
-[*]已测试与 BossLiveMapMod 兼容
-[*]如遇冲突，请在配置中禁用相关功能
-[/list]
-
-[hr][/hr]
-
-[h2]🙏 致谢[/h2]
+Thanks to the following projects and developers:
 
 感谢以下项目和开发者：
 [list]
-[*]Mod_Aimbot - 优秀的自动瞄准实现
-[*]BossLiveMapMod - 地图功能参考
-[*]ItemLevelAndSearchSoundMod - 物品系统参考
-[*]YKF_ESP - ESP 渲染技术参考
+[*]Mod_Aimbot - Excellent auto-aim implementation / 优秀的自动瞄准实现
+[*]BossLiveMapMod - Map feature reference / 地图功能参考
+[*]ItemLevelAndSearchSoundMod - Item system reference / 物品系统参考
+[*]YKF_ESP - ESP rendering technique reference / ESP 渲染技术参考
 [/list]
+
+Thanks to all testers and feedback providers!
 
 感谢所有测试者和反馈者！
 
 [hr][/hr]
 
-[h2]💬 反馈与支持[/h2]
+[h2]💬 Feedback & Support / 💬 反馈与支持[/h2]
+
+If you encounter problems or have suggestions, please leave a message below, providing:
 
 如遇到问题或有建议，请在下方留言，提供：
 [list]
-[*]游戏版本和模组版本
-[*]问题描述和控制台日志
-[*]复现步骤
+[*]Game version and mod version / 游戏版本和模组版本
+[*]Problem description and console log / 问题描述和控制台日志
+[*]Steps to reproduce / 复现步骤
 [/list]
 
 [hr][/hr]
 
-[b]⭐ 如果你喜欢这个模组，请点赞和收藏！[/b]
-[b]💬 有问题或建议请在下方留言！[/b]
-[b]🔔 订阅以获取最新更新！[/b]
+[b]⭐ If you like this mod, please upvote and favorite it! / ⭐ 如果你喜欢这个模组，请点赞和收藏！[/b]
+[b]💬 If you have questions or suggestions, please leave a message below! / 💬 有问题或建议请在下方留言！[/b]
+[b]🔔 Subscribe to get the latest updates! / 🔔 订阅以获取最新更新！[/b]
 
 [hr][/hr]
 
-[i]最后更新：2025-10-21[/i]
-[i]版本：v2.6.0[/i]
-[i]作者：MadLongTom[/i]
+[i]Last Updated: 2025-10-21 / 最后更新：2025-10-21[/i]
+[i]Version: v2.7.0 / 版本：v2.7.0[/i]
+[i]Author: MadLongTom / 作者：MadLongTom[/i]
 
-[url=https://github.com/MadLongTom/DuckovESP]GitHub 仓库[/url]
+[url=https://github.com/MadLongTom/DuckovESP]GitHub Repository[/url]

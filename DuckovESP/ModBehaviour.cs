@@ -10,6 +10,7 @@ using ItemStatsSystem.Items;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using DuckovESP.UI;
+using DuckovESP.Utils.Localization;
 
 namespace DuckovESP
 {
@@ -83,7 +84,10 @@ namespace DuckovESP
         
         private void Awake()
         {
-            Debug.Log("=== DuckovESP Loaded ===");
+            // Initialize localization system first
+            LocalizationManager.Initialize();
+            
+            Debug.Log(LocalizationManager.Get("Debug.ModLoaded"));
             
             // 检测 BossLiveMapMod 是否存在
             DetectBossLiveMapMod();
@@ -120,14 +124,14 @@ namespace DuckovESP
                 _whiteTexture.Apply();
             }
             
-            Debug.Log("箱子物品透视ESP已启动");
-            Debug.Log($"3D ESP: {(_config.Enable3DESP ? "启用" : "禁用")}");
-            Debug.Log($"小地图标记: {(_config.EnableMapMarkers ? "启用" : "禁用")}");
-            Debug.Log($"敌人ESP: {(_config.EnableEnemyESP ? "启用" : "禁用")}");
-            Debug.Log($"自动瞄准: {(_config.EnableAimbot ? "⚠️启用" : "禁用")}");
-            Debug.Log($"自动扳机: {(_config.EnableTriggerBot ? "⚠️启用" : "禁用")}");
-            Debug.Log($"按 {_config.MenuToggleKey} 打开配置菜单");
-            Debug.Log("作弊功能: F7=无敌 F8=一击必杀 F9=速度 F10=负重 F11=子弹 F12=耐力");
+            Debug.Log(LocalizationManager.Get("Debug.Startup"));
+            Debug.Log(LocalizationManager.Get("Debug.ESP3DEnabled", ("status", _config.Enable3DESP ? "启用" : "禁用")));
+            Debug.Log(LocalizationManager.Get("Debug.MapMarkersEnabled", ("status", _config.EnableMapMarkers ? "启用" : "禁用")));
+            Debug.Log(LocalizationManager.Get("Debug.EnemyESPEnabled", ("status", _config.EnableEnemyESP ? "启用" : "禁用")));
+            Debug.Log(LocalizationManager.Get("Debug.AimbotEnabled", ("status", _config.EnableAimbot ? "⚠️启用" : "禁用")));
+            Debug.Log(LocalizationManager.Get("Debug.TriggerBotEnabled", ("status", _config.EnableTriggerBot ? "⚠️启用" : "禁用")));
+            Debug.Log(LocalizationManager.Get("Debug.MenuToggleHint", ("key", _config.MenuToggleKey)));
+            Debug.Log(LocalizationManager.Get("Debug.CheatKeysHint"));
             
             // 初始化GUI样式
             InitializeGUIStyle();
@@ -817,22 +821,22 @@ namespace DuckovESP
             List<string> activeCheatsList = new List<string>();
             
             if (_cheatSystem.IsGodModeEnabled())
-                activeCheatsList.Add("<color=#FFD700>无敌模式</color>");
+                activeCheatsList.Add("<color=#FFD700>✓ " + LocalizationManager.Get("Cheat.GodModeDisplay") + "</color>");
             
             if (_cheatSystem.IsOneHitKillEnabled())
-                activeCheatsList.Add("<color=#FF4444>一击必杀</color>");
+                activeCheatsList.Add("<color=#FF4444>✓ " + LocalizationManager.Get("Cheat.OneHitKillDisplay") + "</color>");
             
             if (_cheatSystem.IsSpeedBoostEnabled())
-                activeCheatsList.Add("<color=#44FF44>速度提升</color>");
+                activeCheatsList.Add("<color=#44FF44>✓ " + LocalizationManager.Get("Cheat.SpeedBoostDisplay") + "</color>");
             
             if (_cheatSystem.IsInfiniteWeightEnabled())
-                activeCheatsList.Add("<color=#00FFFF>无限负重</color>");
+                activeCheatsList.Add("<color=#00FFFF>✓ " + LocalizationManager.Get("Cheat.InfiniteWeightDisplay") + "</color>");
             
             if (_cheatSystem.IsInfiniteAmmoEnabled())
-                activeCheatsList.Add("<color=#FFA500>无限子弹</color>");
+                activeCheatsList.Add("<color=#FFA500>✓ " + LocalizationManager.Get("Cheat.InfiniteAmmoDisplay") + "</color>");
             
             if (_cheatSystem.IsInfiniteStaminaEnabled())
-                activeCheatsList.Add("<color=#FF00FF>无限耐力</color>");
+                activeCheatsList.Add("<color=#FF00FF>✓ " + LocalizationManager.Get("Cheat.InfiniteStaminaDisplay") + "</color>");
             
             // 如果没有激活的作弊功能，不显示
             if (activeCheatsList.Count == 0)
@@ -840,10 +844,10 @@ namespace DuckovESP
             
             // 创建显示文本
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("【作弊功能】");
+            sb.AppendLine(LocalizationManager.Get("UI.Menu.CheatFunctions"));
             foreach (string cheat in activeCheatsList)
             {
-                sb.AppendLine($"• {cheat}");
+                sb.AppendLine($"  {cheat}");
             }
             
             // 设置文本样式
@@ -869,11 +873,11 @@ namespace DuckovESP
             string content = sb.ToString().TrimEnd();
             Vector2 contentSize = textStyle.CalcSize(new GUIContent(content));
             
-            // 在屏幕左上角绘制（考虑padding）
-            float x = 10f;
-            float y = 10f;
+            // 在屏幕右上角绘制
             float width = contentSize.x + 20f;
             float height = contentSize.y + 20f;
+            float x = Screen.width - width - 10f;
+            float y = 10f;
             
             Rect boxRect = new Rect(x, y, width, height);
             Rect textRect = new Rect(x + 10f, y + 10f, contentSize.x, contentSize.y);

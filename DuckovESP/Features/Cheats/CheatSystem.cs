@@ -2,6 +2,7 @@ using ItemStatsSystem;
 using System;
 using System.Reflection;
 using UnityEngine;
+using DuckovESP.Utils.Localization;
 
 namespace DuckovESP
 {
@@ -74,21 +75,21 @@ namespace DuckovESP
             if (Input.GetKeyDown(_config.GodModeKey))
             {
                 _godModeEnabled = !_godModeEnabled;
-                Debug.Log($"DuckovESP: 无敌模式 {(_godModeEnabled ? "启用" : "禁用")}");
+                Debug.Log(LocalizationManager.Get("Cheat.GodModeStatus", ("status", _godModeEnabled ? LocalizationManager.Get("Cheat.Enabled") : LocalizationManager.Get("Cheat.Disabled"))));
             }
 
             // F8 - 一击必杀
             if (Input.GetKeyDown(_config.OneHitKillKey))
             {
                 _oneHitKillEnabled = !_oneHitKillEnabled;
-                Debug.Log($"DuckovESP: 一击必杀 {(_oneHitKillEnabled ? "启用" : "禁用")}");
+                Debug.Log(LocalizationManager.Get("Cheat.OneHitKillStatus", ("status", _oneHitKillEnabled ? LocalizationManager.Get("Cheat.Enabled") : LocalizationManager.Get("Cheat.Disabled"))));
             }
 
             // F9 - 速度提升
             if (Input.GetKeyDown(_config.SpeedBoostKey))
             {
                 _speedBoostEnabled = !_speedBoostEnabled;
-                Debug.Log($"DuckovESP: 速度提升 {(_speedBoostEnabled ? "启用" : "禁用")}");
+                Debug.Log(LocalizationManager.Get("Cheat.SpeedBoostStatus", ("status", _speedBoostEnabled ? LocalizationManager.Get("Cheat.Enabled") : LocalizationManager.Get("Cheat.Disabled"))));
 
                 CharacterMainControl player = CharacterMainControl.Main;
                 if (player != null && !_speedBoostEnabled && _originalSpeed > 0f)
@@ -102,21 +103,21 @@ namespace DuckovESP
             if (Input.GetKeyDown(_config.InfiniteWeightKey))
             {
                 _infiniteWeightEnabled = !_infiniteWeightEnabled;
-                Debug.Log($"DuckovESP: 无限负重 {(_infiniteWeightEnabled ? "启用" : "禁用")}");
+                Debug.Log(LocalizationManager.Get("Cheat.InfiniteWeightStatus", ("status", _infiniteWeightEnabled ? LocalizationManager.Get("Cheat.Enabled") : LocalizationManager.Get("Cheat.Disabled"))));
             }
 
             // F11 - 无限子弹
             if (Input.GetKeyDown(_config.InfiniteAmmoKey))
             {
                 _infiniteAmmoEnabled = !_infiniteAmmoEnabled;
-                Debug.Log($"DuckovESP: 无限子弹 {(_infiniteAmmoEnabled ? "启用" : "禁用")}");
+                Debug.Log(LocalizationManager.Get("Cheat.InfiniteAmmoStatus", ("status", _infiniteAmmoEnabled ? LocalizationManager.Get("Cheat.Enabled") : LocalizationManager.Get("Cheat.Disabled"))));
             }
 
             // F12 - 无限耐力
             if (Input.GetKeyDown(_config.InfiniteStaminaKey))
             {
                 _infiniteStaminaEnabled = !_infiniteStaminaEnabled;
-                Debug.Log($"DuckovESP: 无限耐力 {(_infiniteStaminaEnabled ? "启用" : "禁用")}");
+                Debug.Log(LocalizationManager.Get("Cheat.InfiniteStaminaStatus", ("status", _infiniteStaminaEnabled ? LocalizationManager.Get("Cheat.Enabled") : LocalizationManager.Get("Cheat.Disabled"))));
             }
         }
 
@@ -143,7 +144,7 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"DuckovESP: 应用无敌模式失败 - {ex.Message}");
+                Debug.LogWarning(LocalizationManager.Get("Error.ApplyGodMode", ("error", ex.Message)));
             }
         }
 
@@ -209,7 +210,7 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"DuckovESP: 应用速度提升失败 - {ex.Message}");
+                Debug.LogWarning(LocalizationManager.Get("Error.ApplySpeedBoost", ("error", ex.Message)));
             }
         }
 
@@ -242,7 +243,7 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"DuckovESP: 恢复原始速度失败 - {ex.Message}");
+                Debug.LogWarning(LocalizationManager.Get("Error.RestoreOriginalSpeed", ("error", ex.Message)));
             }
         }
 
@@ -284,7 +285,7 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("DuckovESP: 应用无限负重失败 - " + ex.Message);
+                Debug.LogWarning(LocalizationManager.Get("Error.ApplyInfiniteWeight", ("error", ex.Message)));
             }
         }
 
@@ -325,7 +326,7 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"DuckovESP: 应用无限子弹失败 - {ex.Message}");
+                Debug.LogWarning(LocalizationManager.Get("Error.ApplyInfiniteAmmo", ("error", ex.Message)));
             }
         }
 
@@ -362,7 +363,7 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[CheatSystem] EnsureMagazineStack 失败: {ex.Message}");
+                Debug.LogWarning(LocalizationManager.Get("Error.EnsureMagazineStack", ("error", ex.Message)));
             }
         }
 
@@ -390,7 +391,7 @@ namespace DuckovESP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"DuckovESP: 应用无限耐力失败 - {ex.Message}");
+                Debug.LogWarning(LocalizationManager.Get("Error.ApplyInfiniteStamina", ("error", ex.Message)));
             }
         }
 
@@ -399,13 +400,13 @@ namespace DuckovESP
         /// </summary>
         public string GetStatusText()
         {
-            string status = "=== 作弊功能状态 ===\n";
-            status += $"无敌模式 (F7): {(_godModeEnabled ? "✓ 启用" : "✗ 禁用")}\n";
-            status += $"一击必杀 (F8): {(_oneHitKillEnabled ? "✓ 启用" : "✗ 禁用")}\n";
-            status += $"速度提升 (F9): {(_speedBoostEnabled ? "✓ 启用" : "✗ 禁用")}\n";
-            status += $"无限负重 (F10): {(_infiniteWeightEnabled ? "✓ 启用" : "✗ 禁用")}\n";
-            status += $"无限子弹 (F11): {(_infiniteAmmoEnabled ? "✓ 启用" : "✗ 禁用")}\n";
-            status += $"无限耐力 (F12): {(_infiniteStaminaEnabled ? "✓ 启用" : "✗ 禁用")}";
+            string status = LocalizationManager.Get("Cheat.StatusHeader") + "\n";
+            status += LocalizationManager.Get("Cheat.GodModeLabel", ("status", _godModeEnabled ? "✓ " + LocalizationManager.Get("Cheat.Enabled") : "✗ " + LocalizationManager.Get("Cheat.Disabled"))) + "\n";
+            status += LocalizationManager.Get("Cheat.OneHitKillLabel", ("status", _oneHitKillEnabled ? "✓ " + LocalizationManager.Get("Cheat.Enabled") : "✗ " + LocalizationManager.Get("Cheat.Disabled"))) + "\n";
+            status += LocalizationManager.Get("Cheat.SpeedBoostLabel", ("status", _speedBoostEnabled ? "✓ " + LocalizationManager.Get("Cheat.Enabled") : "✗ " + LocalizationManager.Get("Cheat.Disabled"))) + "\n";
+            status += LocalizationManager.Get("Cheat.InfiniteWeightLabel", ("status", _infiniteWeightEnabled ? "✓ " + LocalizationManager.Get("Cheat.Enabled") : "✗ " + LocalizationManager.Get("Cheat.Disabled"))) + "\n";
+            status += LocalizationManager.Get("Cheat.InfiniteAmmoLabel", ("status", _infiniteAmmoEnabled ? "✓ " + LocalizationManager.Get("Cheat.Enabled") : "✗ " + LocalizationManager.Get("Cheat.Disabled"))) + "\n";
+            status += LocalizationManager.Get("Cheat.InfiniteStaminaLabel", ("status", _infiniteStaminaEnabled ? "✓ " + LocalizationManager.Get("Cheat.Enabled") : "✗ " + LocalizationManager.Get("Cheat.Disabled")));
             return status;
         }
 

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using DuckovESP.Utils.Localization;
 
 namespace DuckovESP
 {
@@ -47,7 +48,7 @@ namespace DuckovESP
             GUI.color = new Color(1, 1, 1, 0.95f);
             
             _windowRect = GUI.Window(54321, _windowRect, (id) => DrawWindowContent(enemies), 
-                $"🎯 敌人雷达 - {enemies.Count} 个目标 (按{_config.EnemyListToggleKey}切换)", _windowStyle);
+                LocalizationManager.Get("UI.EnemyList.Title", ("count", enemies.Count.ToString()), ("key", _config.EnemyListToggleKey)), _windowStyle);
             
             GUI.color = originalColor;
             
@@ -79,7 +80,7 @@ namespace DuckovESP
             
             if (enemies.Count == 0)
             {
-                GUILayout.Label("未检测到敌人", _labelStyle);
+                GUILayout.Label(LocalizationManager.Get("UI.EnemyList.NoEnemiesDetected"), _labelStyle);
             }
             else
             {
@@ -109,7 +110,7 @@ namespace DuckovESP
             GUILayout.BeginHorizontal();
             
             // 总数统计
-            GUILayout.Label($"敌人数量: {enemies.Count}", _headerStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.EnemyList.EnemyCount", ("count", enemies.Count.ToString())), _headerStyle);
             
             GUILayout.FlexibleSpace();
             
@@ -120,7 +121,7 @@ namespace DuckovESP
             
             var originalColor = _headerStyle.normal.textColor;
             _headerStyle.normal.textColor = valueColor;
-            GUILayout.Label($"总价值: ¥{totalValue:N0}", _headerStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.EnemyList.TotalValue", ("value", totalValue.ToString("N0"))), _headerStyle);
             _headerStyle.normal.textColor = originalColor;
             
             GUILayout.EndHorizontal();
@@ -135,7 +136,7 @@ namespace DuckovESP
                     normal = { textColor = Color.red },
                     fontStyle = FontStyle.Bold
                 };
-                GUILayout.Label($"⚠️ 警告: {aimingCount} 个敌人正在瞄准你!", warningStyle);
+                GUILayout.Label(LocalizationManager.Get("UI.EnemyList.AimingWarning", ("count", aimingCount.ToString())), warningStyle);
                 GUILayout.EndHorizontal();
             }
         }
@@ -147,12 +148,12 @@ namespace DuckovESP
         {
             GUILayout.BeginHorizontal();
             
-            GUILayout.Label("名字", _headerStyle, GUILayout.Width(80));
-            GUILayout.Label("距离", _headerStyle, GUILayout.Width(60));
-            GUILayout.Label("血量", _headerStyle, GUILayout.Width(100));
-            GUILayout.Label("武器", _headerStyle, GUILayout.Width(120));
-            GUILayout.Label("价值", _headerStyle, GUILayout.Width(100));
-            GUILayout.Label("状态", _headerStyle, GUILayout.Width(60));
+            GUILayout.Label(LocalizationManager.Get("UI.EnemyList.ColumnName"), _headerStyle, GUILayout.Width(80));
+            GUILayout.Label(LocalizationManager.Get("UI.EnemyList.ColumnDistance"), _headerStyle, GUILayout.Width(60));
+            GUILayout.Label(LocalizationManager.Get("UI.EnemyList.ColumnHealth"), _headerStyle, GUILayout.Width(100));
+            GUILayout.Label(LocalizationManager.Get("UI.EnemyList.ColumnWeapon"), _headerStyle, GUILayout.Width(120));
+            GUILayout.Label(LocalizationManager.Get("UI.EnemyList.ColumnValue"), _headerStyle, GUILayout.Width(100));
+            GUILayout.Label(LocalizationManager.Get("UI.EnemyList.ColumnStatus"), _headerStyle, GUILayout.Width(60));
             
             GUILayout.EndHorizontal();
         }
@@ -197,7 +198,7 @@ namespace DuckovESP
             GUILayout.Label($"¥{enemy.InventoryValue:N0}", valueStyleLocal, GUILayout.Width(100));
             
             // 状态
-            string status = enemy.IsAimingAtPlayer ? "⚠️瞄准" : "正常";
+            string status = enemy.IsAimingAtPlayer ? LocalizationManager.Get("UI.EnemyList.Aiming") : LocalizationManager.Get("UI.EnemyList.Normal");
             var statusStyle = new GUIStyle(_labelStyle)
             {
                 normal = { textColor = enemy.IsAimingAtPlayer ? Color.red : Color.green },
@@ -215,11 +216,11 @@ namespace DuckovESP
         {
             GUILayout.BeginHorizontal();
             
-            GUILayout.Label($"提示: 按 {_config.EnemyListToggleKey} 切换窗口", _labelStyle);
+            GUILayout.Label(LocalizationManager.Get("UI.EnemyList.Hint", ("key", _config.EnemyListToggleKey)), _labelStyle);
             
             GUILayout.FlexibleSpace();
             
-            if (GUILayout.Button("关闭", GUILayout.Width(60)))
+            if (GUILayout.Button(LocalizationManager.Get("UI.Button.Close"), GUILayout.Width(60)))
             {
                 _showWindow = false;
             }

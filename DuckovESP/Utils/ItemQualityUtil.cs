@@ -1,5 +1,6 @@
 using ItemStatsSystem;
 using UnityEngine;
+using DuckovESP.Utils.Localization;
 
 namespace DuckovESP
 {
@@ -199,21 +200,21 @@ namespace DuckovESP
             switch (level)
             {
                 case ItemValueLevel.White:
-                    return "普通";
+                    return LocalizationManager.Get("Quality.White");
                 case ItemValueLevel.Green:
-                    return "稀有";
+                    return LocalizationManager.Get("Quality.Green");
                 case ItemValueLevel.Blue:
-                    return "精良";
+                    return LocalizationManager.Get("Quality.Blue");
                 case ItemValueLevel.Purple:
-                    return "史诗";
+                    return LocalizationManager.Get("Quality.Purple");
                 case ItemValueLevel.Orange:
-                    return "传说";
+                    return LocalizationManager.Get("Quality.Orange");
                 case ItemValueLevel.LightRed:
-                    return "神话";
+                    return LocalizationManager.Get("Quality.LightRed");
                 case ItemValueLevel.Red:
-                    return "至尊";
+                    return LocalizationManager.Get("Quality.Red");
                 default:
-                    return "未知";
+                    return LocalizationManager.Get("Quality.Unknown");
             }
         }
     }
