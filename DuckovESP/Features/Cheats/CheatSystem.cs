@@ -698,12 +698,8 @@ namespace DuckovESP
             // 恢复所有武器的伤害
             RestoreOriginalDamage();
             
-            // 恢复无敌模式
-            if (_godModeEnabled)
-            {
-                DisableGodMode();
-                _godModeEnabled = false;
-            }
+            // 【修复】无敌模式不在关卡切换时重置，允许跨关卡保持
+            // 只清空临时数据，保留 _godModeEnabled 状态
         }
     }
 }

@@ -582,10 +582,10 @@ namespace DuckovESP
                 DrawCheatStatusIndicator();
             }
             
-            // 绘制撤离点指示
+            // 绘制撤离点指示（使用GL渲染）
             if (LevelManager.LevelInited && _config.EnableEvacuationIndicator && !isInBase && _mainCamera != null)
             {
-                DrawEvacuationIndicators();
+                // GL绘制在OnPostRender中处理
             }
             
             // 基地内不显示 ESP
@@ -649,6 +649,13 @@ namespace DuckovESP
             var player = CharacterMainControl.Main;
             if (player == null)
                 return;
+            
+            // 绘制撤离点指示（GL渲染）
+            bool isInBase = IsPlayerInBase();
+            if (_config.EnableEvacuationIndicator && !isInBase)
+            {
+                DrawEvacuationIndicatorsGL();
+            }
             
             // 绘制敌人连线
             if (_config.EnableEnemyESP && _config.EnableEnemyLines)
@@ -913,7 +920,7 @@ namespace DuckovESP
         /// <summary>
         /// 绘制撤离点指示（在屏幕边缘显示绿色箭头和距离）
         /// </summary>
-        private void DrawEvacuationIndicators()
+        private void DrawEvacuationIndicatorsGL()
         {
             try
             {
@@ -947,15 +954,15 @@ namespace DuckovESP
                         if (screenPos.x >= 0 && screenPos.x <= screenWidth && 
                             screenPos.y >= 0 && screenPos.y <= screenHeight)
                         {
-                            // 在屏幕内，绘制标记
-                            DrawEvacuationMarker(new Vector2(screenPos.x, screenPos.y), distance, arrowSize);
+                            // 在屏幕内，绘制圆形标记
+                            DrawEvacuationCircleGL(new Vector2(screenPos.x, screenPos.y), distance);
                         }
                         else
                         {
                             // 在屏幕外，绘制在边缘的箭头指向
-                            DrawEvacuationArrowAtEdge(new Vector2(screenPos.x, screenPos.y), 
-                                                   new Vector2(screenWidth, screenHeight), 
-                                                   edgeMargin, arrowSize, distance);
+                            DrawEvacuationArrowGL(new Vector2(screenPos.x, screenPos.y), 
+                                               new Vector2(screenWidth, screenHeight), 
+                                               edgeMargin, arrowSize, distance);
                         }
                     }
                 }
@@ -967,40 +974,63 @@ namespace DuckovESP
         }
 
         /// <summary>
-        /// 在屏幕内绘制撤离点标记
+        /// 使用GL在屏幕内绘制撤离点圆形标记
         /// </summary>
-        private void DrawEvacuationMarker(Vector2 screenPos, float distance, float size)
+        private void DrawEvacuationCircleGL(Vector2 screenPos, float distance)
         {
-            // 绘制绿色圆形标记
-            GUIStyle circleStyle = new GUIStyle();
-            circleStyle.fontSize = 16;
-            circleStyle.fontStyle = FontStyle.Bold;
-            circleStyle.alignment = TextAnchor.MiddleCenter;
-            circleStyle.normal.textColor = _config.EvacuationIndicatorColor;
+            float size = _config.EvacuationIndicatorSize;
+            Color color = _config.EvacuationIndicatorColor;
             
-            // 绘制圆圈符号
-            GUI.Label(new Rect(screenPos.x - size / 2, screenPos.y - size / 2, size, size), 
-                     "◉", circleStyle);
+            // 绘制圆形边框（使用GL.LINE_STRIP）
+            DrawCircleGL(screenPos, size / 2, color, 16); // 16个顶点的圆
             
-            // 绘制距离信息
+            // 绘制距离信息（文字需要在OnGUI中，这里用小圆点标记）
             if (_config.ShowEvacuationDistance)
             {
-                GUIStyle distanceStyle = new GUIStyle(GUI.skin.label);
-                distanceStyle.fontSize = 12;
-                distanceStyle.normal.textColor = _config.EvacuationIndicatorColor;
-                distanceStyle.alignment = TextAnchor.UpperCenter;
+                // 在圆下方绘制数值距离标记
+                var labelStyle = new GUIStyle(GUI.skin.label);
+                labelStyle.fontSize = 10;
+                labelStyle.normal.textColor = color;
+                labelStyle.alignment = TextAnchor.UpperCenter;
                 
-                string distanceText = $"{distance:F1}m";
                 GUI.Label(new Rect(screenPos.x - 30, screenPos.y + size / 2 + 5, 60, 20), 
-                         distanceText, distanceStyle);
+                         $"{distance:F1}m", labelStyle);
             }
         }
 
         /// <summary>
-        /// 在屏幕边缘绘制指向撤离点的箭头
+        /// 使用GL绘制圆形
         /// </summary>
-        private void DrawEvacuationArrowAtEdge(Vector2 worldScreenPos, Vector2 screenSize, 
-                                             float margin, float arrowSize, float distance)
+        private void DrawCircleGL(Vector2 center, float radius, Color color, int segments)
+        {
+            GL.PushMatrix();
+            var lineMaterial = GetOrCreateLineMaterial();
+            if (lineMaterial != null)
+            {
+                lineMaterial.SetPass(0);
+                GL.LoadOrtho();
+                GL.Begin(GL.LINE_STRIP);
+                GL.Color(color);
+                
+                float angleStep = 360f / segments * Mathf.Deg2Rad;
+                for (int i = 0; i <= segments; i++)
+                {
+                    float angle = i * angleStep;
+                    float x = center.x + radius * Mathf.Cos(angle);
+                    float y = center.y + radius * Mathf.Sin(angle);
+                    GL.Vertex3(x / Screen.width, y / Screen.height, 0f);
+                }
+                
+                GL.End();
+            }
+            GL.PopMatrix();
+        }
+
+        /// <summary>
+        /// 使用GL在屏幕边缘绘制指向撤离点的箭头
+        /// </summary>
+        private void DrawEvacuationArrowGL(Vector2 worldScreenPos, Vector2 screenSize, 
+                                         float margin, float arrowSize, float distance)
         {
             // 计算方向
             Vector2 center = new Vector2(screenSize.x / 2, screenSize.y / 2);
@@ -1026,29 +1056,53 @@ namespace DuckovESP
                 arrowPos.x = center.x + direction.x * (screenSize.y / 2 - margin) / absY;
             }
             
-            // 绘制箭头
-            GUIStyle arrowStyle = new GUIStyle();
-            arrowStyle.fontSize = 18;
-            arrowStyle.fontStyle = FontStyle.Bold;
-            arrowStyle.alignment = TextAnchor.MiddleCenter;
-            arrowStyle.normal.textColor = _config.EvacuationIndicatorColor;
-            
-            GUI.Label(new Rect(arrowPos.x - arrowSize / 2, arrowPos.y - arrowSize / 2, 
-                             arrowSize, arrowSize), "→", arrowStyle);
+            // 绘制箭头（使用GL绘制三角形）
+            Color color = _config.EvacuationIndicatorColor;
+            DrawArrowGL(arrowPos, direction, arrowSize, color);
             
             // 绘制距离信息
             if (_config.ShowEvacuationDistance)
             {
-                GUIStyle distanceStyle = new GUIStyle(GUI.skin.label);
+                var distanceStyle = new GUIStyle(GUI.skin.label);
                 distanceStyle.fontSize = 11;
-                distanceStyle.normal.textColor = _config.EvacuationIndicatorColor;
+                distanceStyle.normal.textColor = color;
                 distanceStyle.alignment = TextAnchor.MiddleCenter;
                 
-                string distanceText = $"{distance:F0}m";
                 GUI.Label(new Rect(arrowPos.x - 25, arrowPos.y + arrowSize / 2 + 5, 50, 18), 
-                         distanceText, distanceStyle);
+                         $"{distance:F0}m", distanceStyle);
             }
         }
+
+        /// <summary>
+        /// 使用GL绘制箭头
+        /// </summary>
+        private void DrawArrowGL(Vector2 position, Vector2 direction, float size, Color color)
+        {
+            GL.PushMatrix();
+            var lineMaterial = GetOrCreateLineMaterial();
+            if (lineMaterial != null)
+            {
+                lineMaterial.SetPass(0);
+                GL.LoadOrtho();
+                GL.Begin(GL.TRIANGLES);
+                GL.Color(color);
+                
+                // 计算箭头的三个顶点
+                Vector2 right = new Vector2(-direction.y, direction.x) * size * 0.3f;
+                Vector2 tip = position + direction * size * 0.5f;
+                Vector2 base1 = position - direction * size * 0.3f + right;
+                Vector2 base2 = position - direction * size * 0.3f - right;
+                
+                // 绘制三角形
+                GL.Vertex3(tip.x / Screen.width, tip.y / Screen.height, 0f);
+                GL.Vertex3(base1.x / Screen.width, base1.y / Screen.height, 0f);
+                GL.Vertex3(base2.x / Screen.width, base2.y / Screen.height, 0f);
+                
+                GL.End();
+            }
+            GL.PopMatrix();
+        }
+
         
         /// <summary>
         /// 绘制单个ESP框和信息（优化版：接收预计算的品质）
