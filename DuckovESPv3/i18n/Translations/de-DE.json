@@ -1,0 +1,143 @@
+{
+  "UI": {
+    "Menu": {
+      "Title": "DuckovESP v3 Konfigurationsmenü"
+    },
+    "Section": {
+      "BasicSettings": "Grundeinstellungen",
+      "ESP3D": "3D-ESP-Einstellungen",
+      "MapMarkers": "Minimap-Marker-Einstellungen",
+      "Filters": "Filtereinstellungen",
+      "Display": "Anzeigeeinstellungen",
+      "EnemyESP": "Gegner-ESP-Einstellungen"
+    },
+    "Label": {
+      "Language": "Sprache (语言):",
+      "MaxDistance": "Max. Anzeigeentfernung: {value}m",
+      "FontSize": "Schriftgröße: {value}",
+      "MaxDisplayItems": "Max. Anzeigeelemente: {value}",
+      "MinQualityMapMarkers": "Min. Qualitätsstufe: {value} (0-6)",
+      "MinQuality3D": "Min. Qualitätsstufe: {value} (0-6)",
+      "BackgroundAlpha": "Hintergrunddeckkraft: {value}",
+      "BorderThickness": "Rahmenstärke: {value}px",
+      "MaxEnemyDistance": "Max. Anzeigeentfernung: {value}m",
+      "MaxEnemyLineDistance": "Max. Linienentfernung: {value}m",
+      "EnemyLineWidth": "Linienbreite: {value}px",
+      "OccludedWarning": "  ✗ Möglicherweise durch 3D-Objekte verdeckt",
+      "ScreenSpaceMode": "[Bildschirmraum]",
+      "NoOcclusion": "  ✓ Nie verdeckt (vollständig sichtbar)",
+      "PerformanceWarning": "  ✗ ~30% Bildrate-Reduktion",
+      "LootESPTitle": "[Beute-ESP] - Kisten und Bodengegenstände",
+      "EnemyESPTitle": "[Gegner-ESP] - Spieler und NPCs",
+      "DisplayInfo": "Info anzeigen:",
+      "QuestZoneMaxDistance": "Questzone Max. Entfernung: {value}m",
+      "QuestZoneColor": "Questzone Farbe:",
+      "BasicFilters": "Grundfilter:",
+      "DisplayConditions": "Anzeigebedingungen (zeige wenn irgendein Kriterium erfüllt ist):",
+      "QuestItemColor": "Quest-Gegenstand Farbe:",
+      "RGBFormat": "RGB({r}, {g}, {b})",
+      "KeyFilters": "Schlüssel-Filter:"
+    },
+    "Toggle": {
+      "DebugMode": "Fehlersuche-Logging aktivieren",
+      "Enable3DESP": "3D-ESP-Durchsicht aktivieren",
+      "Enable3DESPWithNote": "3D-ESP-Durchsicht aktivieren (Hauptschalter)",
+      "ShowDistance": "Entfernung anzeigen",
+      "ShowConnectLine": "Verbindungslinie anzeigen",
+      "EnableMapMarkers": "Minimap-Marker aktivieren",
+      "ShowEmptyBoxes": "Leere Kisten anzeigen",
+      "EnableEnemyESP": "Gegner-ESP aktivieren",
+      "ShowEnemyHealth": "Gesundheit anzeigen",
+      "ShowEnemyWeapon": "Waffe anzeigen",
+      "ShowEnemyValue": "Wert anzeigen",
+      "ShowEnemyLines": "Verbindungslinie anzeigen",
+      "ShowQuestZones": "Questzone-Marker anzeigen",
+      "ShowEvacuationPoints": "Evakuierungspunkt-Indikatoren anzeigen (grüner Pfeil)",
+      "ShowByValue": "Nach Wert anzeigen (>=Min. Qualität)",
+      "ShowWishlistedItems": "Wunschlisten-Gegenstände anzeigen",
+      "ShowQuestItems": "Quest-Gegenstände anzeigen",
+      "ShowBuildingMaterials": "Baumaterialien anzeigen",
+      "ShowUnregisteredKeys": "Nicht registrierte Schlüssel anzeigen"
+    },
+    "Button": {
+      "Save": "Konfiguration speichern",
+      "Reset": "Auf Standard zurücksetzen",
+      "Close": "Schließen"
+    },
+    "Status": {
+      "Enabled": "Aktiviert",
+      "Disabled": "Deaktiviert"
+    },
+    "CheatOverlay": {
+      "Title": "DuckovESP Cheat-Modul-Status",
+      "HeaderText": "═══ Cheat-Funktionen ═══",
+      "GodMode": "Unsterblichkeitsmodus [Shift+F7]",
+      "OneHitKill": "Ein-Hit-Kill [Shift+F8]",
+      "SpeedBoost": "Geschwindigkeitsschub [Shift+F9]",
+      "InfiniteWeight": "Unbegrenztes Gewicht [Shift+F10]",
+      "InfiniteAmmo": "Unbegrenzte Munition [Shift+F11]",
+      "InfiniteStamina": "Unbegrenzte Ausdauer [Shift+F12]",
+      "Enabled": "✓",
+      "Disabled": "✗"
+    },
+    "RenderMode": {
+      "Title": "Render-Modus Auswahl:",
+      "WorldSpace": "[Weltraum] - Empfohlen",
+      "HighFPS": "  ✓ Hohe FPS (beste Leistung)",
+      "ScreenSpace": "[Bildschirmraum]",
+      "NeverOccluded": "  ✓ Nie verdeckt (vollständig sichtbar)",
+      "PerformanceHit": "  ✗ ~30% Bildrate-Reduktion"
+    },
+    "Aimbot": {
+      "Title": "🎯 Aimbot-System-Einstellungen",
+      "EnableAimbot": "[Automatisches Zielen aktivieren] ⚠️ Experimentell",
+      "AimbotFOV": "Zielradius (Pixel): {value}",
+      "AimbotMaxDistance": "Max. Entfernung: {value}m",
+      "AimbotAimAtHead": "Auf Kopf zielen (100% kritisch)",
+      "AimbotIgnoreWalls": "Wand-Durchdringung",
+      "AimbotIgnoreTeamCheck": "⚠️ Testmodus: Team-Überprüfung ignorieren",
+      "EnableTriggerBot": "[Trigger-Bot aktivieren] (benötigt Aimbot)",
+      "TriggerBotDelay": "Trigger-Verzögerung: {value}s",
+      "TriggerBotOnlyADS": "Nur bei Zielung auslösen (RMB)",
+      "EnableNoRecoil": "[Rückstoß deaktivieren]"
+    },
+    "MeleeAutoAttack": {
+      "Title": "🔪 Nahkampf-Automatisch-Angriff-Einstellungen",
+      "Enable": "[Nahkampf-Automatisch-Angriff aktivieren] ⚠️ Experimentell",
+      "Description1": "Beschreibung: Automatisch hinter den Gegner teleportieren und kontinuierlich angreifen",
+      "Description2": "Teleport-Entfernung und Angriffsgeschwindigkeit verwenden automatisch Waffeneigenschaften",
+      "RequireEnemyAiming": "Nur auslösen wenn Gegner auf Spieler zielt"
+    },
+    "Common": {
+      "UIScaleTip": "Tipp: Strg + Mausrad halten um UI-Skalierung anzupassen (aktuell: {scale}x)"
+    }
+  },
+  "Game": {
+    "JoinGameMessage": "Verifizierter Spieler hat das Schlachtfeld betreten! Halte dich an die Regeln oder riskiere deine Reputation!"
+  },
+  "Welcome": {
+    "Title": "Willkommen zu DuckovESP v3!",
+    "Subtitle": "Großes Update von v2 zu v3",
+    "ArchitectureTitle": "Architektur-Update",
+    "ArchitectureDesc": "v3 verwendet Schichtenarchitektur-Design mit komplett umgestalteten Kernsystemen für bessere Leistung und Wartbarkeit",
+    "DataCollectionTitle": "Datenerfassungssystem",
+    "DataCollectionDesc": "Neuer ereignisgesteuerte Datenerfassungsmodus mit Echtzeit-Überwachung und reduzierter Pro-Frame-Belastung",
+    "RenderingTitle": "Rendering-System-Optimierung",
+    "RenderingDesc": "Dual-Rendering-Modi (Bildschirmraum / Weltraum) mit Anti-Okklusion, 3D-Markern, Minimap-Integration",
+    "QuestTitle": "Quest-Marker-System",
+    "QuestDesc": "Erste Integration von Quest-Markern mit Unterstützung für Evakuierungspunkte, Quest-Zonen und Offscreen-Indikatoren",
+    "EnemyTitle": "Gegner-ESP-System",
+    "EnemyDesc": "Gegner-Tracking, Gesundheitsanzeige, Waffenerkennung, Verbindungslinie-Anzeige",
+    "CheatsTitle": "Cheat-Funktionen-Integration",
+    "CheatsDesc": "Hotkey-Cheat-System mit Unsterblichkeitsmodus, Ein-Hit-Kill, Geschwindigkeitsschub und mehr",
+    "UITitle": "Modernes UI-Design",
+    "UIDesc": "Brandneues IMGUI-Thema mit UI-Skalierung, Multi-Sprachen-Unterstützung und Echtzeit-Config-Updates",
+    "OptimizationTitle": "Leistungsoptimierung",
+    "OptimizationDesc": "Reflection-Caching, Dirty-Marking-System, Harmony-Patch-Optimierung mit 50%+ Gesamtleistungssteigerung",
+    "LocalizationTitle": "Internationalisierungs-Support",
+    "LocalizationDesc": "Vollständige Multi-Sprachen-Unterstützung (Chinesisch, Englisch, Deutsch) mit JSON-Konfiguration",
+    "StartButton": "Erste Schritte",
+    "CloseNotice": "Tipp: Drücke F5 zum Umschalten des Konfigurationsmenüs"
+  }
+}
+

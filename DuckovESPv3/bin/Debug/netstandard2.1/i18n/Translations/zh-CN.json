@@ -1,0 +1,46 @@
+{
+  "UI": {
+    "Menu": {
+      "Title": "DuckovESP v3 配置菜单"
+    },
+    "Section": {
+      "BasicSettings": "基础设置",
+      "ESP3D": "3D ESP设置",
+      "MapMarkers": "小地图标记设置",
+      "Filters": "过滤设置",
+      "Display": "显示设置",
+      "EnemyESP": "敌人ESP设置"
+    },
+    "Label": {
+      "Language": "语言 (Language):",
+      "MaxDistance": "最大显示距离: {value}m",
+      "FontSize": "字体大小: {value}",
+      "MaxDisplayItems": "最多显示物品数: {value}",
+      "MinQualityMapMarkers": "最小品质等级: {value} (0-6)",
+      "MinQuality3D": "最小品质等级: {value} (0-6)",
+      "BackgroundAlpha": "背景透明度: {value}",
+      "BorderThickness": "边框厚度: {value}px",
+      "MaxEnemyDistance": "最大显示距离: {value}m",
+      "MaxEnemyLineDistance": "连接线最大距离: {value}m",
+      "EnemyLineWidth": "连接线宽度: {value}px"
+    },
+    "Toggle": {
+      "DebugMode": "启用调试日志",
+      "Enable3DESP": "启用3D ESP透视",
+      "ShowDistance": "显示距离",
+      "ShowConnectLine": "显示连接线",
+      "EnableMapMarkers": "启用小地图标记",
+      "ShowEmptyBoxes": "显示空箱子",
+      "EnableEnemyESP": "启用敌人ESP",
+      "ShowEnemyHealth": "显示生命值",
+      "ShowEnemyWeapon": "显示武器",
+      "ShowEnemyValue": "显示价值",
+      "ShowEnemyLines": "显示连接线"
+    },
+    "Button": {
+      "Save": "保存配置",
+      "Reset": "重置默认",
+      "Close": "关闭"
+    }
+  }
+}

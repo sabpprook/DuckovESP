@@ -1,0 +1,325 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\ui\\windows\\welcomepopup.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\ui\\windows\\welcomepopup.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\modbehaviour.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\modbehaviour.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\systems\\esp\\detection\\lootboxspawnhook.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\systems\\esp\\detection\\lootboxspawnhook.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\systems\\esp\\detection\\lootboxdatacollector.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\systems\\esp\\detection\\lootboxdatacollector.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\systems\\esp\\detection\\worlditemdatacollector.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\systems\\esp\\detection\\worlditemdatacollector.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\systems\\esp\\espsystemmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\systems\\esp\\espsystemmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\eventbus\\eventbus.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\eventbus\\eventbus.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\dependencyinjection\\servicecontainer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\dependencyinjection\\servicecontainer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\configuration\\iconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\configuration\\iconfiguration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\configuration\\espsystemconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\configuration\\espsystemconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\configuration\\configurationmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\configuration\\configurationmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\configuration\\configentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\configuration\\configentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\systems\\esp\\rendering\\espmarkerpool.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\systems\\esp\\rendering\\espmarkerpool.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\systems\\esp\\events\\espdataevents.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\systems\\esp\\events\\espdataevents.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\duckovespv3.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\duckovespv3.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\core\\systems\\esp\\models\\lootboxdata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\core\\systems\\esp\\models\\lootboxdata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|d:\\vsprojects\\duckovespv3\\duckovespv3\\duckovespv3\\ui\\windows\\configwindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6FA572AC-ED7C-48DD-8C9C-3E7A95D90365}|DuckovESPv3\\DuckovESPv3.csproj|solutionrelative:duckovespv3\\ui\\windows\\configwindow.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "WelcomePopup.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\UI\\Windows\\WelcomePopup.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\UI\\Windows\\WelcomePopup.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\UI\\Windows\\WelcomePopup.cs",
+              "RelativeToolTip": "DuckovESPv3\\UI\\Windows\\WelcomePopup.cs",
+              "ViewState": "AgIAAFMBAAAAAAAAAAAQwGMBAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-26T13:27:24.274Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "LootboxDataCollector.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Detection\\LootboxDataCollector.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Systems\\ESP\\Detection\\LootboxDataCollector.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Detection\\LootboxDataCollector.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Systems\\ESP\\Detection\\LootboxDataCollector.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-26T04:32:31.174Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "LootboxSpawnHook.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Detection\\LootboxSpawnHook.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Systems\\ESP\\Detection\\LootboxSpawnHook.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Detection\\LootboxSpawnHook.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Systems\\ESP\\Detection\\LootboxSpawnHook.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-26T04:32:30.506Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "ESPSystemManager.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\ESPSystemManager.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Systems\\ESP\\ESPSystemManager.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\ESPSystemManager.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Systems\\ESP\\ESPSystemManager.cs",
+              "ViewState": "AgIAACcAAAAAAAAAAAAAwDgAAABBAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T15:36:00.014Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "EventBus.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\EventBus\\EventBus.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\EventBus\\EventBus.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\EventBus\\EventBus.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\EventBus\\EventBus.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T16:42:32.731Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "ServiceContainer.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\DependencyInjection\\ServiceContainer.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\DependencyInjection\\ServiceContainer.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\DependencyInjection\\ServiceContainer.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\DependencyInjection\\ServiceContainer.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAuwBEAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T16:42:21.298Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "ESPSystemConfig.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Configuration\\ESPSystemConfig.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Configuration\\ESPSystemConfig.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Configuration\\ESPSystemConfig.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Configuration\\ESPSystemConfig.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T16:42:17.432Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "IConfiguration.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Configuration\\IConfiguration.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Configuration\\IConfiguration.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Configuration\\IConfiguration.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Configuration\\IConfiguration.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T16:42:16.031Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ModBehaviour.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\ModBehaviour.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\ModBehaviour.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\ModBehaviour.cs",
+              "RelativeToolTip": "DuckovESPv3\\ModBehaviour.cs",
+              "ViewState": "AgIAAOgBAAAAAAAAAAAAAPUBAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T07:42:34.163Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "ConfigurationManager.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Configuration\\ConfigurationManager.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Configuration\\ConfigurationManager.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Configuration\\ConfigurationManager.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Configuration\\ConfigurationManager.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAAABAAAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T16:42:08.206Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "WorldItemDataCollector.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Detection\\WorldItemDataCollector.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Systems\\ESP\\Detection\\WorldItemDataCollector.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Detection\\WorldItemDataCollector.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Systems\\ESP\\Detection\\WorldItemDataCollector.cs",
+              "ViewState": "AgIAAKkBAAAAMDMzMzP7vwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T08:54:04.934Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "ConfigEntry.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Configuration\\ConfigEntry.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Configuration\\ConfigEntry.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Configuration\\ConfigEntry.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Configuration\\ConfigEntry.cs",
+              "ViewState": "AgIAABkAAAAAAAAAAAAQwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T16:42:03.214Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "ESPMarkerPool.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Rendering\\ESPMarkerPool.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Systems\\ESP\\Rendering\\ESPMarkerPool.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Rendering\\ESPMarkerPool.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Systems\\ESP\\Rendering\\ESPMarkerPool.cs",
+              "ViewState": "AgIAAC8AAAAAAAAAAAAAABIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T15:36:34.398Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "LootboxData.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Models\\LootboxData.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Systems\\ESP\\Models\\LootboxData.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Models\\LootboxData.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Systems\\ESP\\Models\\LootboxData.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T08:41:52.006Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "ESPDataEvents.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Events\\ESPDataEvents.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\Core\\Systems\\ESP\\Events\\ESPDataEvents.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\Core\\Systems\\ESP\\Events\\ESPDataEvents.cs",
+              "RelativeToolTip": "DuckovESPv3\\Core\\Systems\\ESP\\Events\\ESPDataEvents.cs",
+              "ViewState": "AgIAAFwAAABAMzMzMxMwwA8AAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T08:41:27.099Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{57d563b6-44a5-47df-85be-f4199ad6b651}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{e1b7d1f8-9b3c-49b1-8f4f-bfc63a88835d}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "ConfigWindow.cs",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\UI\\Windows\\ConfigWindow.cs",
+              "RelativeDocumentMoniker": "DuckovESPv3\\UI\\Windows\\ConfigWindow.cs",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\UI\\Windows\\ConfigWindow.cs",
+              "RelativeToolTip": "DuckovESPv3\\UI\\Windows\\ConfigWindow.cs",
+              "ViewState": "AgIAAAMBAAAAAAAAAAAAAB0AAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-25T08:12:05.824Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "DuckovESPv3",
+              "DocumentMoniker": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3.csproj",
+              "RelativeDocumentMoniker": "DuckovESPv3\\DuckovESPv3.csproj",
+              "ToolTip": "D:\\VSProjects\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3\\DuckovESPv3.csproj",
+              "RelativeToolTip": "DuckovESPv3\\DuckovESPv3.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAGQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-10-25T07:42:38.418Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "UI": {
+    "Menu": {
+      "Title": "DuckovESP v3 Config Menu"
+    },
+    "Section": {
+      "BasicSettings": "Basic Settings",
+      "ESP3D": "3D ESP Settings",
+      "MapMarkers": "Minimap Markers Settings",
+      "Filters": "Filter Settings",
+      "Display": "Display Settings",
+      "EnemyESP": "Enemy ESP Settings"
+    },
+    "Label": {
+      "Language": "Language (语言):",
+      "MaxDistance": "Max Display Distance: {value}m",
+      "FontSize": "Font Size: {value}",
+      "MaxDisplayItems": "Max Display Items: {value}",
+      "MinQualityMapMarkers": "Min Quality Level: {value} (0-6)",
+      "MinQuality3D": "Min Quality Level: {value} (0-6)",
+      "BackgroundAlpha": "Background Opacity: {value}",
+      "BorderThickness": "Border Thickness: {value}px",
+      "MaxEnemyDistance": "Max Display Distance: {value}m",
+      "MaxEnemyLineDistance": "Connection Line Max Distance: {value}m",
+      "EnemyLineWidth": "Connection Line Width: {value}px",
+      "OccludedWarning": "  ✗ May be occluded by 3D objects",
+      "ScreenSpaceMode": "[Screen Space]",
+      "NoOcclusion": "  ✓ Never occluded (fully visible)",
+      "PerformanceWarning": "  ✗ Reduce ~30% frame rate",
+      "LootESPTitle": "[Loot ESP] - Boxes and ground items",
+      "EnemyESPTitle": "[Enemy ESP] - Players and NPCs",
+      "DisplayInfo": "Display Info:",
+      "QuestZoneMaxDistance": "Quest Zone Max Distance: {value}m",
+      "QuestZoneColor": "Quest Zone Color:",
+      "BasicFilters": "Basic Filters:",
+      "DisplayConditions": "Display Conditions (show if any matched):",
+      "QuestItemColor": "Quest Item Color:",
+      "RGBFormat": "RGB({r}, {g}, {b})",
+      "KeyFilters": "Key Filters:"
+    },
+    "Toggle": {
+      "DebugMode": "Enable Debug Logging",
+      "Enable3DESP": "Enable 3D ESP X-Ray",
+      "Enable3DESPWithNote": "Enable 3D ESP X-Ray (Master Toggle)",
+      "ShowDistance": "Show Distance",
+      "ShowConnectLine": "Show Connection Lines",
+      "EnableMapMarkers": "Enable Minimap Markers",
+      "ShowEmptyBoxes": "Show Empty Boxes",
+      "EnableEnemyESP": "Enable Enemy ESP",
+      "ShowEnemyHealth": "Show Health",
+      "ShowEnemyWeapon": "Show Weapon",
+      "ShowEnemyValue": "Show Value",
+      "ShowEnemyLines": "Show Connection Lines",
+      "ShowQuestZones": "Show Quest Zone Markers",
+      "ShowEvacuationPoints": "Show Evacuation Point Indicators (Green Arrow)",
+      "ShowByValue": "Show by Value (>=Min Quality)",
+      "ShowWishlistedItems": "Show Wishlist Items",
+      "ShowQuestItems": "Show Quest Items",
+      "ShowBuildingMaterials": "Show Building Materials",
+      "ShowUnregisteredKeys": "Show Unregistered Keys"
+    },
+    "Button": {
+      "Save": "Save Config",
+      "Reset": "Reset to Default",
+      "Close": "Close"
+    },
+    "Status": {
+      "Enabled": "Enabled",
+      "Disabled": "Disabled"
+    },
+    "CheatOverlay": {
+      "Title": "DuckovESP Cheat Module Status",
+      "HeaderText": "═══ Cheat Features ═══",
+      "GodMode": "God Mode [Shift+F7]",
+      "OneHitKill": "One-Hit Kill [Shift+F8]",
+      "SpeedBoost": "Speed Boost [Shift+F9]",
+      "InfiniteWeight": "Infinite Weight [Shift+F10]",
+      "InfiniteAmmo": "Infinite Ammo [Shift+F11]",
+      "InfiniteStamina": "Infinite Stamina [Shift+F12]",
+      "Enabled": "✓",
+      "Disabled": "✗"
+    },
+    "RenderMode": {
+      "Title": "Render Mode Selection:",
+      "WorldSpace": "[World Space] - Recommended",
+      "HighFPS": "  ✓ High FPS (Best Performance)",
+      "ScreenSpace": "[Screen Space]",
+      "NeverOccluded": "  ✓ Never occluded (fully visible)",
+      "PerformanceHit": "  ✗ Reduce ~30% frame rate"
+    },
+    "Aimbot": {
+      "Title": "🎯 Aimbot System Settings",
+      "EnableAimbot": "[Enable Auto-Aim] ⚠️ Experimental",
+      "AimbotFOV": "Aim Radius (pixels): {value}",
+      "AimbotMaxDistance": "Max Distance: {value}m",
+      "AimbotAimAtHead": "Aim at Head (100% crit)",
+      "AimbotIgnoreWalls": "Wall Penetration",
+      "AimbotIgnoreTeamCheck": "⚠️ Test Mode: Ignore Team Check",
+      "EnableTriggerBot": "[Enable Trigger Bot] (Requires Aimbot)",
+      "TriggerBotDelay": "Trigger Delay: {value}s",
+      "TriggerBotOnlyADS": "Only Trigger When Aiming (RMB)",
+      "EnableNoRecoil": "[Enable No Recoil]"
+    },
+    "MeleeAutoAttack": {
+      "Title": "🔪 Melee Auto-Attack Settings",
+      "Enable": "[Enable Melee Auto-Attack] ⚠️ Experimental",
+      "Description1": "Description: Auto-teleport behind enemy and continuously attack when holding melee",
+      "Description2": "Teleport distance and attack speed will auto-use weapon stats",
+      "RequireEnemyAiming": "Only Trigger When Enemy Aiming at Player"
+    },
+    "Common": {
+      "UIScaleTip": "Tip: Hold Ctrl + Mouse Wheel to adjust UI scale (Current: {scale}x)"
+    }
+  },
+  "Welcome": {
+    "Title": "Welcome to DuckovESP v3!",
+    "Subtitle": "Major Upgrade from v2 to v3",
+    "ArchitectureTitle": "Architecture Upgrade",
+    "ArchitectureDesc": "v3 uses layered architecture design with completely restructured core systems for better performance and maintainability",
+    "DataCollectionTitle": "Data Collection System",
+    "DataCollectionDesc": "New event-driven data collection mode supporting real-time monitoring with reduced per-frame overhead",
+    "RenderingTitle": "Rendering System Optimization",
+    "RenderingDesc": "Dual rendering modes (screen space / world space) with anti-occlusion, 3D markers, minimap integration",
+    "QuestTitle": "Quest Marker System",
+    "QuestDesc": "First integration of quest markers with support for evacuation points, quest zones, and off-screen indicators",
+    "EnemyTitle": "Enemy ESP System",
+    "EnemyDesc": "Enemy tracking, health display, weapon recognition, connection line display",
+    "CheatsTitle": "Cheat Features Integration",
+    "CheatsDesc": "Hotkey cheat system including god mode, one-hit kill, speed boost and more",
+    "UITitle": "Modern UI Design",
+    "UIDesc": "Brand new IMGUI theme with UI scaling, multi-language support, and real-time config updates",
+    "OptimizationTitle": "Performance Optimization",
+    "OptimizationDesc": "Reflection caching, dirty marking system, Harmony Patch optimization with 50%+ total performance gain",
+    "LocalizationTitle": "Internationalization Support",
+    "LocalizationDesc": "Full multi-language support (Chinese, English, German) with JSON configuration",
+    "StartButton": "Get Started",
+    "CloseNotice": "Tip: Press F5 to toggle config menu"
+  }
+}
+
