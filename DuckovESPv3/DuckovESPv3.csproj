@@ -1,100 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
-    <Nullable>enable</Nullable>
+	<PropertyGroup>
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+		<DuckovPath>E:\SteamLibrary\steamapps\common\Escape from Duckov</DuckovPath>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<!-- 游戏核心DLL引用 - 请根据你的游戏安装路径修改 -->
 		<!-- 使用 Steam Workshop 中 HarmonyLoadMod 提供的 Harmony DLL -->
+
+		<Reference Include="$(DuckovPath)\Duckov_Data\Managed\ItemStatsSystem.dll" />
+		<Reference Include="$(DuckovPath)\Duckov_Data\Managed\TeamSoda.*" />
+		<Reference Include="$(DuckovPath)\Duckov_Data\Managed\Unity*" />
 		<Reference Include="0Harmony">
-			<HintPath>D:\SteamLibrary\steamapps\workshop\content\3167020\3589088839\0Harmony.dll</HintPath>
+			<HintPath>E:\SteamLibrary\steamapps\workshop\content\3167020\3589088839\0Harmony.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
-		<Reference Include="Newtonsoft.Json">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\Newtonsoft.Json.dll</HintPath>
-			<Private>False</Private>
-		</Reference>
-		<Reference Include="ItemStatsSystem">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\ItemStatsSystem.dll</HintPath>
-		</Reference>
-		<Reference Include="TeamSoda.Duckov.Core">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\TeamSoda.Duckov.Core.dll</HintPath>
-			<Private>True</Private>
-			<EmbedInteropTypes>False</EmbedInteropTypes>
-		</Reference>
-		<Reference Include="TeamSoda.Duckov.Utilities">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\TeamSoda.Duckov.Utilities.dll</HintPath>
-		</Reference>
-		<Reference Include="TeamSoda.MiniLocalizor">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\TeamSoda.MiniLocalizor.dll</HintPath>
-		</Reference>
-
-		<!-- Unity引擎DLL -->
-		<Reference Include="UnityEngine.CoreModule">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
-			<Private>False</Private>
-		</Reference>
-
-		<Reference Include="UnityEngine">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.dll</HintPath>
-			<Private>False</Private>
-		</Reference>
-
-		<Reference Include="UnityEngine.IMGUIModule">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
-		</Reference>
-
-		<Reference Include="UnityEngine.TextRenderingModule">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
-		</Reference>
-
-		<Reference Include="UnityEngine.InputLegacyModule">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
-		</Reference>
-
-		<Reference Include="UnityEngine.JSONSerializeModule">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
-		</Reference>
-
-		<Reference Include="UnityEngine.PhysicsModule">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
-		</Reference>
-
-		<!-- 其他必要的Unity模块 -->
-		<Reference Include="UnityEngine.UI">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.UI.dll</HintPath>
-			<Private>False</Private>
-		</Reference>
-
-		<Reference Include="UnityEngine.UIModule">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.UIModule.dll</HintPath>
-			<Private>False</Private>
-		</Reference>
-
-		<Reference Include="Unity.TextMeshPro">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\Unity.TextMeshPro.dll</HintPath>
-			<Private>False</Private>
-		</Reference>
-
-		<Reference Include="UnityEngine.AssetBundleModule">
-			<HintPath>D:\SteamLibrary\steamapps\common\Escape from Duckov\Duckov_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
-			<Private>False</Private>
-		</Reference>
+		<Reference Include="$(DuckovPath)\Duckov_Data\Managed\Newtonsoft.Json.dll" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="i18n\Translations\de-DE.json">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Update="i18n\Translations\en-US.json">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-	  <None Update="i18n\Translations\zh-CN.json">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
+		<None Update="i18n\Translations\de-DE.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="i18n\Translations\en-US.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="i18n\Translations\zh-CN.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 </Project>

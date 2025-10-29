@@ -1,6 +1,6 @@
 is_global = true
 build_property.RootNamespace = DuckovESPv3
-build_property.ProjectDir = D:\VSProjects\DuckovESPv3\DuckovESPv3\DuckovESPv3\
+build_property.ProjectDir = C:\Users\Mars\Documents\GitHub\DuckovESP\DuckovESPv3\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.CsWinRTUseWindowsUIXamlProjections = false
