@@ -54,7 +54,7 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
         /// <summary>
         /// 为箱子创建小地图标记
         /// </summary>
-        /// <param name="lootbox">箱子对象</param>
+        /// <param name="inventory">箱子对象</param>
         /// <param name="position">位置</param>
         /// <param name="hasUnregisteredKey">是否包含未注册钥匙</param>
         /// <param name="hasBuildingMaterial">是否包含建筑材料</param>
@@ -63,7 +63,7 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
         /// <param name="highestQuality">箱子中最高品质物品的等级</param>
         /// <returns>标记数据，如果创建失败则返回 null</returns>
         public MinimapMarkerData CreateMarkerForLootbox(
-            InteractableLootbox lootbox, 
+            Inventory inventory, 
             Vector3 position,
             bool hasUnregisteredKey,
             bool hasBuildingMaterial,
@@ -71,7 +71,7 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
             System.Collections.Generic.List<string> qualifiedItems,
             ItemValueLevel highestQuality)
         {
-            if (lootbox == null)
+            if (inventory == null)
             {
                 return null;
             }
@@ -113,7 +113,7 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
             }
 
             // 创建并返回标记数据
-            return new MinimapMarkerData(markerObject, lootbox, markerType, position);
+            return new MinimapMarkerData(markerObject, inventory, markerType, position);
         }
 
         /// <summary>

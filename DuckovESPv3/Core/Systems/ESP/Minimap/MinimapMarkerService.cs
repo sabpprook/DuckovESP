@@ -50,7 +50,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
             _eventBus.Subscribe<WorldItemRemovedEvent>(OnWorldItemRemoved);
             _eventBus.Subscribe<LootboxDiscoveredEvent>(OnLootboxDiscovered);
             _eventBus.Subscribe<LootboxRemovedEvent>(OnLootboxRemoved);
-            _eventBus.Subscribe<LootboxContentChangedEvent>(OnLootboxContentChanged);
             _eventBus.Subscribe<QuestZonesUpdatedEvent>(OnQuestZonesUpdated);
 
             Debug.Log("[MinimapMarkerService] Started monitoring ESP events");
@@ -65,7 +64,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
             _eventBus.Unsubscribe<WorldItemRemovedEvent>(OnWorldItemRemoved);
             _eventBus.Unsubscribe<LootboxDiscoveredEvent>(OnLootboxDiscovered);
             _eventBus.Unsubscribe<LootboxRemovedEvent>(OnLootboxRemoved);
-            _eventBus.Unsubscribe<LootboxContentChangedEvent>(OnLootboxContentChanged);
             _eventBus.Unsubscribe<QuestZonesUpdatedEvent>(OnQuestZonesUpdated);
 
             Debug.Log("[MinimapMarkerService] Stopped monitoring ESP events");
@@ -211,14 +209,14 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
             }
 
             // 检查是否已存在标记
-            if (_markers.ContainsKey(lootboxData.Lootbox))
+            if (_markers.ContainsKey(lootboxData.Inventory))
             {
                 return;
             }
 
             // 创建标记
             var marker = _factory.CreateMarkerForLootbox(
-                lootboxData.Lootbox,
+                lootboxData.Inventory,
                 lootboxData.Position,
                 hasUnregisteredKey,
                 hasBuildingMaterial,
@@ -229,7 +227,7 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
 
             if (marker != null)
             {
-                _markers[lootboxData.Lootbox] = marker;
+                _markers[lootboxData.Inventory] = marker;
                 Debug.Log($"[MinimapMarkerService] ✓ 创建箱子标记 (位置: {lootboxData.Position}, 类型: {marker.Type}, 物品数: {qualifiedItems.Count}, 最高品质: {highestQuality})");
             }
         }
@@ -239,12 +237,12 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
         /// </summary>
         private void OnLootboxRemoved(LootboxRemovedEvent evt)
         {
-            if (evt?.Data?.Lootbox == null)
+            if (evt?.Data?.Inventory == null)
             {
                 return;
             }
 
-            RemoveMarker(evt.Data.Lootbox);
+            RemoveMarker(evt.Data.Inventory);
         }
 
         /// <summary>
@@ -264,7 +262,7 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
             if (evt.Reason == ChangeReason.BecameEmpty)
             {
                 Debug.Log($"[MinimapMarkerService] 箱子变空，移除标记: {lootboxData.Position}");
-                RemoveMarker(lootboxData.Lootbox);
+                RemoveMarker(lootboxData.Inventory);
                 return;
             }
 
@@ -273,7 +271,7 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
             if (inventory == null)
             {
                 Debug.LogWarning($"[MinimapMarkerService] 箱子 Inventory 为 null，无法更新标记");
-                RemoveMarker(lootboxData.Lootbox);
+                RemoveMarker(lootboxData.Inventory);
                 return;
             }
 
@@ -323,16 +321,16 @@ namespace DuckovESPv3.Core.Systems.ESP.Minimap
             if (qualifiedItems.Count == 0 && !hasUnregisteredKey)
             {
                 Debug.Log($"[MinimapMarkerService] 箱子内容变更后无符合条件物品，移除标记");
-                RemoveMarker(lootboxData.Lootbox);
+                RemoveMarker(lootboxData.Inventory);
                 return;
             }
 
             // 移除旧标记
-            RemoveMarker(lootboxData.Lootbox);
+            RemoveMarker(lootboxData.Inventory);
 
             // 创建新标记（使用更新后的内容）
             var marker = _factory.CreateMarkerForLootbox(
-                lootboxData.Lootbox,
+                lootboxData.Inventory,
                 lootboxData.Position,
                 hasUnregisteredKey,
                 hasBuildingMaterial,

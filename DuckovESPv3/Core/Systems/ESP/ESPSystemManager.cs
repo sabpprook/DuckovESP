@@ -36,7 +36,7 @@ namespace DuckovESPv3.Core.Systems.ESP
         private Features.QuestMarker.Collectors.QuestZoneTracker? _questZoneTracker;
 
         // ===== 标记管理 =====
-        private Dictionary<InteractableLootbox, ESPMarker> _lootboxMarkers = new Dictionary<InteractableLootbox, ESPMarker>();
+        private Dictionary<Inventory, ESPMarker> _lootboxMarkers = new Dictionary<Inventory, ESPMarker>();
         private Dictionary<ItemStatsSystem.Item, ESPMarker> _itemMarkers = new Dictionary<ItemStatsSystem.Item, ESPMarker>();
         private Dictionary<string, ESPMarker> _questZoneMarkers = new Dictionary<string, ESPMarker>();
         private Dictionary<string, GameObject> _questZoneGameObjects = new Dictionary<string, GameObject>();
@@ -76,6 +76,7 @@ namespace DuckovESPv3.Core.Systems.ESP
             _inventoryMonitor = new Detection.InventoryMonitor(_logger);
             _inventoryMonitor.OnItemRemovedFromLootbox += HandleItemRemovedFromLootbox;
             _inventoryMonitor.OnWorldItemPickedUp += HandleWorldItemPickedUp;
+            InteractableLootbox.OnStopLoot += LootboxOnStopLoot;
 
             _logger.Info("[ESPSystemManager] ESP 系统已初始化");
         }
@@ -816,7 +817,10 @@ namespace DuckovESPv3.Core.Systems.ESP
         {
             try
             {
-                if (data.Lootbox == null || _lootboxMarkers.ContainsKey(data.Lootbox) || _playerTransform == null)
+                if (data.Lootbox == null || _lootboxMarkers.ContainsKey(data.Inventory) || _playerTransform == null)
+                    return;
+
+                if (data.Lootbox.Looted)
                     return;
 
                 var marker = ESPMarkerPool.Instance?.Get();
@@ -850,7 +854,7 @@ namespace DuckovESPv3.Core.Systems.ESP
                     renderMode
                 );
 
-                _lootboxMarkers[data.Lootbox] = marker;
+                _lootboxMarkers[data.Inventory] = marker;
                 
                 // 开始监听箱子 Inventory 变化
                 if (data.Inventory != null && _inventoryMonitor != null)
@@ -927,10 +931,10 @@ namespace DuckovESPv3.Core.Systems.ESP
         private void RemoveLootboxMarker(InteractableLootbox lootbox)
         {
             if (lootbox == null) return;
-            if (!_lootboxMarkers.TryGetValue(lootbox, out var marker)) return;
+            if (!_lootboxMarkers.TryGetValue(lootbox.Inventory, out var marker)) return;
 
             marker.ReturnToPool();
-            _lootboxMarkers.Remove(lootbox);
+            _lootboxMarkers.Remove(lootbox.Inventory);
             _logger.Debug($"[ESPSystemManager] 移除箱子标记: {lootbox.name}");
         }
 
@@ -1000,28 +1004,28 @@ namespace DuckovESPv3.Core.Systems.ESP
             if (_config.Enable3DESP)
             {
                 // 检查箱子标记
-                var lootboxesToRemove = new System.Collections.Generic.List<InteractableLootbox>();
+                var lootboxesToRemove = new System.Collections.Generic.List<Inventory>();
                 foreach (var kvp in _lootboxMarkers)
                 {
-                    var lootbox = kvp.Key;
+                    var inventory = kvp.Key;
                     var marker = kvp.Value;
                     
                     if (marker.GetDataReference() is LootboxData data)
                     {
                         if (!ShouldShowLootbox(data))
                         {
-                            lootboxesToRemove.Add(lootbox);
+                            lootboxesToRemove.Add(inventory);
                         }
                     }
                 }
 
                 // 移除箱子标记
-                foreach (var lootbox in lootboxesToRemove)
+                foreach (var inventory in lootboxesToRemove)
                 {
-                    if (_lootboxMarkers.TryGetValue(lootbox, out var marker))
+                    if (_lootboxMarkers.TryGetValue(inventory, out var marker))
                     {
                         marker.ReturnToPool();
-                        _lootboxMarkers.Remove(lootbox);
+                        _lootboxMarkers.Remove(inventory);
                         removedLootboxes++;
                     }
                 }
@@ -1084,8 +1088,11 @@ namespace DuckovESPv3.Core.Systems.ESP
                         if (data.Lootbox == null)
                             continue;
 
+                        if (data.Lootbox.Looted)
+                            continue;
+
                         // 如果标记不存在且现在符合条件，创建新标记
-                        if (!_lootboxMarkers.ContainsKey(data.Lootbox) && ShouldShowLootbox(data))
+                        if (!_lootboxMarkers.ContainsKey(data.Inventory) && ShouldShowLootbox(data))
                         {
                             CreateLootboxMarker(data);
                             addedLootboxes++;
@@ -1146,6 +1153,29 @@ namespace DuckovESPv3.Core.Systems.ESP
             foreach (var marker in _itemMarkers.Values)
             {
                 marker.UpdateDisplayOptions(showLine, showDistance);
+            }
+        }
+
+        private void LootboxOnStopLoot(InteractableLootbox obj)
+        {
+            // 查找对应的箱子
+            if (!_inventoryToLootbox.TryGetValue(obj.Inventory, out var lootbox))
+            {
+                _logger.Debug($"[ESPSystemManager] 无法找到Inventory对应的箱子");
+                return;
+            }
+
+            // 箱子已空，移除整个箱子标记
+            _logger.Info($"[ESPSystemManager] 箱子已空，移除标记: {lootbox.name}");
+            RemoveLootboxMarker(lootbox);
+            _inventoryMonitor?.StopMonitoringLootbox(lootbox.Inventory);
+
+            // 发布箱子变为空事件（用于小地图标记更新）
+            var lootboxData = _lootboxCollector?.GetLootboxData(lootbox);
+            if (lootboxData != null)
+            {
+                _eventBus.Publish(new Events.LootboxRemovedEvent(lootboxData));
+                _logger.Debug($"[ESPSystemManager] 已发布箱子变空事件");
             }
         }
 
@@ -1222,6 +1252,13 @@ namespace DuckovESPv3.Core.Systems.ESP
                     _logger.Info($"[ESPSystemManager] 地面物品被捡起，移除标记: {pickedItem.DisplayName}");
                     RemoveWorldItemMarker(pickedItem);
                     _inventoryMonitor?.StopMonitoringWorldItem(pickedItem);
+
+                    var worldItem = _worldItemCollector?.GetWorldItemData(pickedItem);
+                    if (worldItem != null)
+                    {
+                        _eventBus.Publish(new Events.WorldItemRemovedEvent(worldItem));
+                        _logger.Debug($"[ESPSystemManager] 已发布物品移除事件");
+                    }
                 }
             }
             catch (Exception ex)
@@ -1237,7 +1274,7 @@ namespace DuckovESPv3.Core.Systems.ESP
         {
             try
             {
-                if (!_lootboxMarkers.TryGetValue(lootbox, out var marker))
+                if (!_lootboxMarkers.TryGetValue(lootbox.Inventory, out var marker))
                 {
                     return;
                 }
@@ -1301,6 +1338,7 @@ namespace DuckovESPv3.Core.Systems.ESP
             // 清理 Inventory 监听器
             if (_inventoryMonitor != null)
             {
+                InteractableLootbox.OnStopLoot -= LootboxOnStopLoot;
                 _inventoryMonitor.OnItemRemovedFromLootbox -= HandleItemRemovedFromLootbox;
                 _inventoryMonitor.OnWorldItemPickedUp -= HandleWorldItemPickedUp;
                 _inventoryMonitor.Dispose();
@@ -1317,6 +1355,7 @@ namespace DuckovESPv3.Core.Systems.ESP
             // 清理 Inventory 监听器
             if (_inventoryMonitor != null)
             {
+                InteractableLootbox.OnStopLoot -= LootboxOnStopLoot;
                 _inventoryMonitor.OnItemRemovedFromLootbox -= HandleItemRemovedFromLootbox;
                 _inventoryMonitor.OnWorldItemPickedUp -= HandleWorldItemPickedUp;
                 _inventoryMonitor.Dispose();

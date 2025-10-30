@@ -340,11 +340,9 @@ namespace DuckovESPv3
         private void OnSubSceneLoaded(Duckov.Scenes.MultiSceneCore core, UnityEngine.SceneManagement.Scene scene)
         {
             _logger?.Info($"[ModBehaviour] 子场景加载完成: {scene.name}，追加扫描新物品");
-            
-            // 不清理数据，使用 Rescan 方法追加新物品
-            _lootboxCollector?.Rescan();
-            
-            _worldItemCollector?.Rescan();
+
+            OnLevelBeginInitializing();
+            OnLevelLoaded();
         }
 
         /// <summary>
