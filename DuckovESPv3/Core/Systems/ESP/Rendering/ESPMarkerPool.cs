@@ -80,12 +80,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
                 SpriteRenderer spriteRenderer = prefab.AddComponent<SpriteRenderer>();
                 spriteRenderer.sprite = ESPSpriteGenerator.CreateCircleSprite(64, true);
                 spriteRenderer.color = Color.white;
-
-                // 添加 LineRenderer
-                LineRenderer lineRenderer = prefab.AddComponent<LineRenderer>();
-                lineRenderer.startWidth = 0.02f;
-                lineRenderer.endWidth = 0.02f;
-                lineRenderer.positionCount = 2;
                 
                 // 尝试查找 Shader
                 Shader shader = Shader.Find("Sprites/Default");
@@ -97,11 +91,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
                 {
                     shader = Shader.Find("Unlit/Color");
                 }
-                
-                lineRenderer.material = shader != null ? new Material(shader) : new Material(Shader.Find("Hidden/InternalErrorShader"));
-                lineRenderer.startColor = Color.white;
-                lineRenderer.endColor = Color.white;
-                lineRenderer.enabled = false;
 
                 // 创建 Canvas（World Space + 自定义Shader性能更好）
                 GameObject canvasObj = new GameObject("NameCanvas");
@@ -208,7 +197,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
                 // 添加 ESPMarker 组件
                 ESPMarker marker = prefab.AddComponent<ESPMarker>();
                 marker.spriteRenderer = spriteRenderer;
-                marker.lineRenderer = lineRenderer;
                 marker.canvas = canvas;
                 marker.nameText = text;
                 marker.backgroundPanel = bgImage;  // 设置背景遮罩

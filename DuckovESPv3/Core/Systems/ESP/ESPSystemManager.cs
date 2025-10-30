@@ -27,7 +27,6 @@ namespace DuckovESPv3.Core.Systems.ESP
         // ===== 数据采集器引用 =====
         private Detection.ILootboxCollectionService? _lootboxCollector;
         private Detection.IWorldItemCollectionService? _worldItemCollector;
-        private Services.EnemyCollectionService? _enemyCollector;
 
         // ===== Inventory 监听器 =====
         private Detection.InventoryMonitor? _inventoryMonitor;
@@ -39,7 +38,6 @@ namespace DuckovESPv3.Core.Systems.ESP
         // ===== 标记管理 =====
         private Dictionary<InteractableLootbox, ESPMarker> _lootboxMarkers = new Dictionary<InteractableLootbox, ESPMarker>();
         private Dictionary<ItemStatsSystem.Item, ESPMarker> _itemMarkers = new Dictionary<ItemStatsSystem.Item, ESPMarker>();
-        private Dictionary<CharacterMainControl, ESPMarker> _enemyMarkers = new Dictionary<CharacterMainControl, ESPMarker>();
         private Dictionary<string, ESPMarker> _questZoneMarkers = new Dictionary<string, ESPMarker>();
         private Dictionary<string, GameObject> _questZoneGameObjects = new Dictionary<string, GameObject>();
         
@@ -93,21 +91,6 @@ namespace DuckovESPv3.Core.Systems.ESP
         }
 
         /// <summary>
-        /// 设置敌人采集服务引用
-        /// </summary>
-        public void SetEnemyCollectionService(Services.EnemyCollectionService enemyCollector)
-        {
-            _enemyCollector = enemyCollector;
-            
-            // 订阅敌人事件
-            _enemyCollector.OnEnemyAdded += HandleEnemyAdded;
-            _enemyCollector.OnEnemyRemoved += HandleEnemyRemoved;
-            _enemyCollector.OnEnemyUpdated += HandleEnemyUpdated;
-            
-            _logger.Info("[ESPSystemManager] 敌人采集器引用已设置，事件已订阅");
-        }
-
-        /// <summary>
         /// 设置数据追踪器引用（用于更新距离和屏幕坐标）
         /// </summary>
         public void SetDataTrackers(
@@ -142,14 +125,6 @@ namespace DuckovESPv3.Core.Systems.ESP
                     marker.UpdateUIScale(scale);
                 }
             }
-            
-            foreach (var marker in _enemyMarkers.Values)
-            {
-                if (marker != null)
-                {
-                    marker.UpdateUIScale(scale);
-                }
-            }
         }
 
         /// <summary>
@@ -167,14 +142,6 @@ namespace DuckovESPv3.Core.Systems.ESP
             }
             
             foreach (var marker in _itemMarkers.Values)
-            {
-                if (marker != null)
-                {
-                    marker.UpdateFontSize(fontSize);
-                }
-            }
-            
-            foreach (var marker in _enemyMarkers.Values)
             {
                 if (marker != null)
                 {
@@ -1005,29 +972,11 @@ namespace DuckovESPv3.Core.Systems.ESP
             }
             _itemMarkers.Clear();
 
-            foreach (var marker in _enemyMarkers.Values)
-            {
-                marker.ReturnToPool();
-            }
-            _enemyMarkers.Clear();
-
             // Quest区域和撤离点使用GL渲染，无需清理标记
             _questZones.Clear();
             _evacuationPoints.Clear();
 
             _logger.Info("[ESPSystemManager] 已清理所有标记");
-        }
-        
-        /// <summary>
-        /// 更新所有敌人标记的最大距离
-        /// </summary>
-        public void UpdateEnemyMarkersDistance(float maxDistance)
-        {
-            foreach (var marker in _enemyMarkers.Values)
-            {
-                marker.UpdateMaxDistance(maxDistance);
-            }
-            _logger.Debug($"[ESPSystemManager] 已更新所有敌人标记距离: {maxDistance}m");
         }
 
         /// <summary>
@@ -1122,18 +1071,6 @@ namespace DuckovESPv3.Core.Systems.ESP
                 _itemMarkers.Clear();
             }
 
-            // === 敌人标记（受EnableEnemyESP独立控制）===
-            if (!_config.EnableEnemyESP)
-            {
-                // EnableEnemyESP=false：移除所有敌人标记
-                foreach (var marker in _enemyMarkers.Values)
-                {
-                    marker.ReturnToPool();
-                }
-                removedEnemies = _enemyMarkers.Count;
-                _enemyMarkers.Clear();
-            }
-
             // ===== 第二步：添加新符合条件的标记 =====
             
             // === 添加物品/箱子标记（仅当Enable3DESP=true）===
@@ -1172,27 +1109,6 @@ namespace DuckovESPv3.Core.Systems.ESP
                         {
                             CreateWorldItemMarker(data);
                             addedItems++;
-                        }
-                    }
-                }
-            }
-
-            // === 添加敌人标记（仅当EnableEnemyESP=true）===
-            if (_config.EnableEnemyESP && _enemyCollector != null)
-            {
-                foreach (var enemyData in _enemyCollector.GetAllEnemies())
-                {
-                    if (enemyData.Character == null)
-                        continue;
-
-                    // 如果标记不存在，创建新标记
-                    if (!_enemyMarkers.ContainsKey(enemyData.Character))
-                    {
-                        var marker = CreateEnemyMarker(enemyData);
-                        if (marker != null)
-                        {
-                            _enemyMarkers[enemyData.Character] = marker;
-                            addedEnemies++;
                         }
                     }
                 }
@@ -1378,138 +1294,10 @@ namespace DuckovESPv3.Core.Systems.ESP
             }
         }
 
-        // ===== 敌人事件处理 =====
-
-        /// <summary>
-        /// 处理敌人发现事件
-        /// </summary>
-        private void HandleEnemyAdded(EnemyData enemyData)
-        {
-            // 检查是否启用敌人ESP
-            if (!_config.EnableEnemyESP)
-                return;
-
-            try
-            {
-                if (enemyData.Character == null)
-                {
-                    _logger.Warning("[ESPSystemManager] 敌人角色为null，跳过创建标记");
-                    return;
-                }
-
-                // 检查是否已存在标记
-                if (_enemyMarkers.ContainsKey(enemyData.Character))
-                {
-                    _logger.Warning($"[ESPSystemManager] 敌人标记已存在: {enemyData.Name}");
-                    return;
-                }
-
-                // 创建敌人标记
-                var marker = CreateEnemyMarker(enemyData);
-                if (marker != null)
-                {
-                    _enemyMarkers[enemyData.Character] = marker;
-                    _logger.Info($"[ESPSystemManager] 已创建敌人标记: {enemyData.Name}, 距离: {enemyData.DistanceToPlayer:F1}m");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"[ESPSystemManager] 处理敌人发现事件失败: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 处理敌人死亡事件
-        /// </summary>
-        private void HandleEnemyRemoved(CharacterMainControl character)
-        {
-            try
-            {
-                if (_enemyMarkers.TryGetValue(character, out var marker))
-                {
-                    marker.ReturnToPool();
-                    _enemyMarkers.Remove(character);
-                    _logger.Info($"[ESPSystemManager] 已移除敌人标记: {character.name}");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"[ESPSystemManager] 处理敌人死亡事件失败: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 处理敌人数据更新事件（血量变化）
-        /// </summary>
-        private void HandleEnemyUpdated(EnemyData enemyData)
-        {
-            try
-            {
-                if (_enemyMarkers.TryGetValue(enemyData.Character, out var marker))
-                {
-                    // 更新标记文本（血量、距离等）
-                    marker.UpdateEnemyText(enemyData);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"[ESPSystemManager] 处理敌人更新事件失败: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 创建敌人标记
-        /// </summary>
-        private ESPMarker? CreateEnemyMarker(EnemyData enemyData)
-        {
-            try
-            {
-                var marker = ESPMarkerPool.Instance?.Get();
-                if (marker == null)
-                {
-                    _logger.Error("[ESPSystemManager] 无法从对象池获取标记");
-                    return null;
-                }
-
-                Color enemyColor = Formatting.EnemyInfoFormatter.GetEnemyColor(enemyData);
-                ESPRenderMode renderMode = (ESPRenderMode)_config.ESPRenderMode;
-
-                // 使用独立的敌人连接线配置
-                marker.Initialize(
-                    enemyData.Character.transform,
-                    _playerTransform,
-                    enemyColor,
-                    _config.MaxEnemyESPDistance,  // 使用敌人专用距离
-                    _config.EnableEnemyLines,      // 使用敌人专用连接线配置
-                    _config.ShowDistance,
-                    enemyData,
-                    _config.ESPFontSize,
-                    _uiScale,
-                    renderMode,
-                    _config  // 传入配置以控制敌人信息显示
-                );
-
-                return marker;
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"[ESPSystemManager] 创建敌人标记失败: {ex.Message}");
-                return null;
-            }
-        }
-
         private void OnDisable()
         {
             UnsubscribeEvents();
-            
-            // 取消敌人事件订阅
-            if (_enemyCollector != null)
-            {
-                _enemyCollector.OnEnemyAdded -= HandleEnemyAdded;
-                _enemyCollector.OnEnemyRemoved -= HandleEnemyRemoved;
-                _enemyCollector.OnEnemyUpdated -= HandleEnemyUpdated;
-            }
-            
+
             // 清理 Inventory 监听器
             if (_inventoryMonitor != null)
             {
@@ -1525,14 +1313,6 @@ namespace DuckovESPv3.Core.Systems.ESP
         private void OnDestroy()
         {
             UnsubscribeEvents();
-            
-            // 取消敌人事件订阅
-            if (_enemyCollector != null)
-            {
-                _enemyCollector.OnEnemyAdded -= HandleEnemyAdded;
-                _enemyCollector.OnEnemyRemoved -= HandleEnemyRemoved;
-                _enemyCollector.OnEnemyUpdated -= HandleEnemyUpdated;
-            }
             
             // 清理 Inventory 监听器
             if (_inventoryMonitor != null)

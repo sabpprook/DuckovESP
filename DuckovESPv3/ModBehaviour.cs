@@ -4,9 +4,6 @@ using DuckovESPv3.Core.EventBus;
 using DuckovESPv3.Core.DependencyInjection;
 using DuckovESPv3.Core.Systems.ESP;
 using DuckovESPv3.Core.Systems.ESP.Detection;
-using DuckovESPv3.Core.Systems.ESP.Services;
-using DuckovESPv3.Core.Systems.Aimbot;
-using DuckovESPv3.Core.Systems.MeleeAutoAttack;
 using DuckovESPv3.Infrastructure.Logging;
 using DuckovESPv3.Infrastructure.Localization;
 using DuckovESPv3.UI.Windows;
@@ -36,26 +33,11 @@ namespace DuckovESPv3
         private IEventBus? _eventBus;
         private ILogger? _logger;
         private ConfigWindow? _configWindow;
-        private WelcomePopup? _welcomePopup;
         private ESPSystemConfig? _espConfig;
-        private AimbotSystemConfig? _aimbotConfig;
-        private MeleeAutoAttackConfig? _meleeAutoAttackConfig;
-        
-        // 自瞄系统
-        private AimbotSystem? _aimbotSystem;
-        
-        // 刀自动攻击系统
-        private MeleeAutoAttackSystem? _meleeAutoAttackSystem;
-        
-        // 作弊系统
-        private Core.Systems.Cheat.CheatSystem? _cheatSystem;
-        private Core.Configuration.CheatSystemConfig? _cheatConfig;
-        private GameObject? _cheatOverlayObject;
-        
+
         // 数据采集器
         private ILootboxCollectionService? _lootboxCollector;
         private IWorldItemCollectionService? _worldItemCollector;
-        private EnemyCollectionService? _enemyCollector;
         
         // Quest标记收集服务
         private QuestMarkerCollectionService? _questMarkerService;
@@ -116,12 +98,6 @@ namespace DuckovESPv3
                 // 3. 初始化配置系统
                 _configuration.Initialize<ESPSystemConfig>();
                 _espConfig = _configuration.GetConfigInstance<ESPSystemConfig>();
-                
-                _configuration.Initialize<AimbotSystemConfig>();
-                _aimbotConfig = _configuration.GetConfigInstance<AimbotSystemConfig>();
-                
-                _configuration.Initialize<MeleeAutoAttackConfig>();
-                _meleeAutoAttackConfig = _configuration.GetConfigInstance<MeleeAutoAttackConfig>();
 
                 // 4. 初始化本地化系统
                 // 优先级：用户配置的语言 → 游戏语言 → 系统语言 → 英文
@@ -178,14 +154,12 @@ namespace DuckovESPv3
                 {
                     _lootboxCollector = new LootboxDataCollector(_eventBus, _logger);
                     _worldItemCollector = new WorldItemDataCollector(_eventBus, _logger);
-                    _enemyCollector = new EnemyCollectionService(_logger, _eventBus);
                     _logger.Info("[ModBehaviour] 数据采集器已创建，等待关卡加载...");
                     
                     // 8. 将数据采集器引用传递给 ESP 系统管理器（用于 RefreshAllMarkers）
                     if (_espSystemManager != null)
                     {
                         _espSystemManager.SetDataCollectors(_lootboxCollector, _worldItemCollector);
-                        _espSystemManager.SetEnemyCollectionService(_enemyCollector);
                         _logger.Info("[ModBehaviour] 已将数据采集器引用传递给ESP系统管理器（包含敌人采集器）");
                     }
                 }
@@ -195,52 +169,6 @@ namespace DuckovESPv3
                 {
                     _minimapMarkerSystem = new Core.Systems.ESP.Minimap.MinimapMarkerSystem(_espConfig, _eventBus);
                     _logger?.Info("[ModBehaviour] 小地图标记系统已创建，等待关卡加载...");
-                }
-                
-                // 10. 初始化自瞄系统
-                if (_aimbotConfig != null && _logger != null)
-                {
-                    _aimbotSystem = new AimbotSystem(_aimbotConfig, _logger);
-                    _logger.Info("[ModBehaviour] 自瞄系统已创建");
-                }
-                
-                // 11. 初始化刀自动攻击系统
-                if (_meleeAutoAttackConfig != null && _logger != null)
-                {
-                    _meleeAutoAttackSystem = new MeleeAutoAttackSystem(_meleeAutoAttackConfig, _logger, _enemyCollector);
-                    _logger.Info("[ModBehaviour] 刀自动攻击系统已创建（集成ESP敌人数据）");
-                }
-                
-                // 12. 初始化作弊系统配置
-                _configuration.Initialize<Core.Configuration.CheatSystemConfig>();
-                _cheatConfig = _configuration.GetConfigInstance<Core.Configuration.CheatSystemConfig>();
-                
-                // 13. 初始化作弊系统
-                if (_cheatConfig != null && _logger != null)
-                {
-                    _cheatSystem = new Core.Systems.Cheat.CheatSystem(_cheatConfig, _logger, _configuration);
-                    _logger.Info("[ModBehaviour] 作弊系统已创建");
-                    
-                    // 应用无限子弹 Harmony Hooks
-                    try
-                    {
-                        Core.Systems.Cheat.Hooks.InfiniteAmmoHook.ApplyPatches(_harmony, _cheatSystem, _logger);
-                        _logger.Info("[ModBehaviour] ✓ 无限子弹 Harmony Hooks 已应用");
-                    }
-                    catch (System.Exception ex)
-                    {
-                        _logger.Error($"[ModBehaviour] 无限子弹 Harmony Hooks 应用失败: {ex}");
-                    }
-                    
-                    // 14. 创建作弊状态叠加层 UI
-                    if (_cheatConfig.ShowCheatStatusOverlay)
-                    {
-                        _cheatOverlayObject = new GameObject("CheatStatusOverlay");
-                        DontDestroyOnLoad(_cheatOverlayObject);
-                        var overlay = _cheatOverlayObject.AddComponent<Core.Systems.Cheat.UI.CheatStatusOverlay>();
-                        overlay.Initialize(_cheatSystem, _cheatConfig);
-                        _logger.Info("[ModBehaviour] 作弊状态叠加层 UI 已创建");
-                    }
                 }
 
                 Debug.Log("[ModBehaviour] DuckovESPv3 Mod 初始化完成");
@@ -287,23 +215,9 @@ namespace DuckovESPv3
             // 清理采集器
             _lootboxCollector?.Cleanup();
             _worldItemCollector?.Cleanup();
-            _enemyCollector?.Cleanup();
             
             // 清理Quest标记收集服务
             _questMarkerService?.Dispose();
-            
-            // 清理自瞄系统
-            _aimbotSystem?.Cleanup();
-            
-            // 清理刀自动攻击系统
-            _meleeAutoAttackSystem?.Cleanup();
-            
-            // 清理作弊系统 UI
-            if (_cheatOverlayObject != null)
-            {
-                Destroy(_cheatOverlayObject);
-                _cheatOverlayObject = null;
-            }
             
             // 清理 ESP 系统
             _espSystemManager?.ClearAllMarkers();
@@ -323,51 +237,19 @@ namespace DuckovESPv3
                 _configWindow?.Toggle();
             }
             
-            // 更新自瞄系统
-            if (_aimbotSystem != null && _aimbotConfig != null)
-            {
-                _aimbotSystem.Update();
-            }
-            
-            // 更新刀自动攻击系统
-            if (_meleeAutoAttackSystem != null && _meleeAutoAttackConfig != null)
-            {
-                _meleeAutoAttackSystem.Update();
-            }
-            
             // 更新Quest标记服务（更新距离计算）
             _questMarkerService?.Update();
-            
-            // 更新作弊系统
-            _cheatSystem?.Update();
         }
 
         private void OnGUI()
         {
-            // 【新增】延迟初始化 WelcomePopup（GUI必须在OnGUI中初始化）
-            if (_welcomePopup == null)
-            {
-                try
-                {
-                    _welcomePopup = new WelcomePopup();
-                    _logger?.Info("[ModBehaviour] WelcomePopup已初始化");
-                }
-                catch (System.Exception ex)
-                {
-                    _logger?.Error($"[ModBehaviour] WelcomePopup初始化失败: {ex.Message}");
-                }
-            }
-
-            // 【新增】绘制欢迎弹窗
-            _welcomePopup?.Draw();
-
             // 延迟初始化ConfigWindow（GUI必须在OnGUI中初始化）
             if (_configWindow == null && _espConfig != null)
             {
                 try
                 {
                     GUIStyleManager styleManager = new GUIStyleManager();
-                    _configWindow = new ConfigWindow(_espConfig, styleManager, _aimbotConfig, _meleeAutoAttackConfig);
+                    _configWindow = new ConfigWindow(_espConfig, styleManager);
                     
                     // 传入ESPSystemManager引用以支持配置实时刷新
                     if (_espSystemManager != null)
@@ -410,7 +292,6 @@ namespace DuckovESPv3
             _logger?.Info("[ModBehaviour] 关卡开始初始化，清理旧数据...");
             
             // 先停止监听（避免清理过程中继续添加数据）
-            _enemyCollector?.Cleanup();
             _lootboxCollector?.Cleanup();
             _worldItemCollector?.Cleanup();
             
@@ -449,66 +330,8 @@ namespace DuckovESPv3
                 _logger?.Info("[ModBehaviour] ESP CommandBuffer管理器已创建");
             }
             
-            // 初始化自瞄系统
-            if (_aimbotSystem != null)
-            {
-                _aimbotSystem.Initialize();
-                _logger?.Info("[ModBehaviour] 自瞄系统已初始化");
-            }
-            
-            // 初始化刀自动攻击系统
-            if (_meleeAutoAttackSystem != null)
-            {
-                _meleeAutoAttackSystem.Initialize();
-                _logger?.Info("[ModBehaviour] 刀自动攻击系统已初始化");
-            }
-            
             // 重新初始化采集器（开始采集新关卡的数据）
             InitializeDataCollectors();
-            
-            // 扫描场景中已存在的敌人（预置的NPC）
-            // 必须在关卡完全加载后扫描，否则角色可能还没初始化
-            _enemyCollector?.ScanExistingEnemies();
-            _logger?.Info("[ModBehaviour] 场景敌人扫描完成");
-            
-            // 延迟显示进入战局提示消息
-            StartCoroutine(ShowJoinGameMessage());
-        }
-        
-        /// <summary>
-        /// 显示进入战局提示消息（带延迟）
-        /// </summary>
-        private System.Collections.IEnumerator ShowJoinGameMessage()
-        {
-            // 等待2秒，确保玩家角色完全加载并且游戏稳定
-            yield return new UnityEngine.WaitForSeconds(2f);
-            
-            try
-            {
-                // 检查是否在基地，基地内不显示提示
-                if (LevelManager.Instance != null && LevelManager.Instance.IsBaseLevel)
-                {
-                    _logger?.Info("[ModBehaviour] 当前在基地，跳过进入战局提示");
-                    yield break;
-                }
-                
-                var player = CharacterMainControl.Main;
-                if (player != null)
-                {
-                    // 使用本地化消息，自动适配不同语言和文化背景
-                    string message = LocalizationManager.Get("Game.JoinGameMessage");
-                    player.PopText(message, -1f); // speed = -1f 表示使用默认速度
-                    _logger?.Info($"[ModBehaviour] 已显示进入战局提示 (语言: {LocalizationManager.GetCurrentLanguage()}): {message}");
-                }
-                else
-                {
-                    _logger?.Warning("[ModBehaviour] 无法显示进入战局提示：玩家角色未找到");
-                }
-            }
-            catch (System.Exception ex)
-            {
-                _logger?.Error($"[ModBehaviour] 显示进入战局提示时发生错误: {ex.Message}");
-            }
         }
         
         /// <summary>
@@ -541,12 +364,6 @@ namespace DuckovESPv3
                 {
                     _worldItemCollector.Initialize();
                     _logger?.Info("[ModBehaviour] WorldItem采集器已初始化");
-                }
-
-                if (_enemyCollector != null)
-                {
-                    _enemyCollector.Initialize();
-                    _logger?.Info("[ModBehaviour] Enemy采集器已初始化（0轮询模式）");
                 }
 
                 // 初始化Quest标记收集服务

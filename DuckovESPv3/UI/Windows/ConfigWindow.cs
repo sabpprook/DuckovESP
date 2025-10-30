@@ -366,32 +366,6 @@ namespace DuckovESPv3.UI.Windows
             GUILayout.EndVertical();
             GUILayout.Space(10);
 
-            // ==================== 敌人ESP ====================
-            GUILayout.BeginVertical(GUI.skin.box);
-            _config.EnableEnemyESP = GUILayout.Toggle(_config.EnableEnemyESP, LocalizationManager.Get("UI.Label.EnemyESPTitle"), _styleManager.ToggleStyle);
-            
-            if (_config.EnableEnemyESP)
-            {
-                GUILayout.Space(5);
-                
-                // 敌人专用距离设置
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(LocalizationManager.Get("UI.Label.MaxEnemyDistance", ("value", $"{_config.MaxEnemyESPDistance:F0}")), _styleManager.LabelStyle, GUILayout.Width(200));
-                _config.MaxEnemyESPDistance = GUILayout.HorizontalSlider(_config.MaxEnemyESPDistance, 50f, 500f, GUILayout.Width(250));
-                GUILayout.EndHorizontal();
-                
-                // 敌人连接线（独立于物资连接线）
-                _config.EnableEnemyLines = GUILayout.Toggle(_config.EnableEnemyLines, LocalizationManager.Get("UI.Toggle.ShowEnemyLines"), _styleManager.ToggleStyle);
-                
-                // 敌人信息显示配置
-                GUILayout.Label(LocalizationManager.Get("UI.Label.DisplayInfo"), _styleManager.LabelStyle);
-                _config.ShowEnemyHealth = GUILayout.Toggle(_config.ShowEnemyHealth, LocalizationManager.Get("UI.Toggle.ShowEnemyHealth"), _styleManager.ToggleStyle);
-                _config.ShowEnemyWeapon = GUILayout.Toggle(_config.ShowEnemyWeapon, LocalizationManager.Get("UI.Toggle.ShowEnemyWeapon"), _styleManager.ToggleStyle);
-                _config.ShowEnemyValue = GUILayout.Toggle(_config.ShowEnemyValue, LocalizationManager.Get("UI.Toggle.ShowEnemyValue"), _styleManager.ToggleStyle);
-            }
-            GUILayout.EndVertical();
-            GUILayout.Space(10);
-
             // 字体大小（通用）
             GUILayout.BeginHorizontal();
             GUILayout.Label(LocalizationManager.Get("UI.Label.FontSize", ("value", _config.ESPFontSize.ToString())), _styleManager.LabelStyle, GUILayout.Width(200));
@@ -499,88 +473,6 @@ namespace DuckovESPv3.UI.Windows
             GUILayout.Space(5);
             GUILayout.Label(LocalizationManager.Get("UI.Label.KeyFilters"), _styleManager.LabelStyle);
             _config.ShowNotWishlistedKeys = GUILayout.Toggle(_config.ShowNotWishlistedKeys, LocalizationManager.Get("UI.Toggle.ShowUnregisteredKeys"), _styleManager.ToggleStyle);
-
-            GUILayout.Space(10);
-
-            // ==================== 自瞄系统设置 ====================
-            if (_aimbotConfig != null)
-            {
-                GUILayout.Label(LocalizationManager.Get("UI.Aimbot.Title"), _styleManager.TitleLabelStyle);
-                GUILayout.Space(5);
-
-                // 自动瞄准
-                _aimbotConfig.EnableAimbot = GUILayout.Toggle(_aimbotConfig.EnableAimbot, LocalizationManager.Get("UI.Aimbot.EnableAimbot"), _styleManager.ToggleStyle);
-
-                if (_aimbotConfig.EnableAimbot)
-                {
-                    GUILayout.BeginVertical(GUI.skin.box);
-                    
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(LocalizationManager.Get("UI.Aimbot.AimbotFOV", ("value", _aimbotConfig.AimbotFOV.ToString("F0"))), _styleManager.LabelStyle, GUILayout.Width(200));
-                    _aimbotConfig.AimbotFOV = GUILayout.HorizontalSlider(_aimbotConfig.AimbotFOV, 100f, 1000f, GUILayout.Width(250));
-                    GUILayout.EndHorizontal();
-
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(LocalizationManager.Get("UI.Aimbot.AimbotMaxDistance", ("value", _aimbotConfig.AimbotMaxDistance.ToString("F0"))), _styleManager.LabelStyle, GUILayout.Width(200));
-                    _aimbotConfig.AimbotMaxDistance = GUILayout.HorizontalSlider(_aimbotConfig.AimbotMaxDistance, 50f, 500f, GUILayout.Width(250));
-                    GUILayout.EndHorizontal();
-
-                    _aimbotConfig.AimbotAimAtHead = GUILayout.Toggle(_aimbotConfig.AimbotAimAtHead, LocalizationManager.Get("UI.Aimbot.AimbotAimAtHead"), _styleManager.ToggleStyle);
-                    _aimbotConfig.AimbotIgnoreWalls = GUILayout.Toggle(_aimbotConfig.AimbotIgnoreWalls, LocalizationManager.Get("UI.Aimbot.AimbotIgnoreWalls"), _styleManager.ToggleStyle);
-                    _aimbotConfig.AimbotIgnoreTeamCheck = GUILayout.Toggle(_aimbotConfig.AimbotIgnoreTeamCheck, LocalizationManager.Get("UI.Aimbot.AimbotIgnoreTeamCheck"), _styleManager.ToggleStyle);
-                    
-                    GUILayout.EndVertical();
-                }
-
-                GUILayout.Space(5);
-
-                // 自动扳机
-                _aimbotConfig.EnableTriggerBot = GUILayout.Toggle(_aimbotConfig.EnableTriggerBot, LocalizationManager.Get("UI.Aimbot.EnableTriggerBot"), _styleManager.ToggleStyle);
-
-                if (_aimbotConfig.EnableTriggerBot)
-                {
-                    GUILayout.BeginVertical(GUI.skin.box);
-                    
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(LocalizationManager.Get("UI.Aimbot.TriggerBotDelay", ("value", _aimbotConfig.TriggerBotDelay.ToString("F2"))), _styleManager.LabelStyle, GUILayout.Width(200));
-                    _aimbotConfig.TriggerBotDelay = GUILayout.HorizontalSlider(_aimbotConfig.TriggerBotDelay, 0f, 0.5f, GUILayout.Width(250));
-                    GUILayout.EndHorizontal();
-
-                    _aimbotConfig.TriggerBotOnlyADS = GUILayout.Toggle(_aimbotConfig.TriggerBotOnlyADS, LocalizationManager.Get("UI.Aimbot.TriggerBotOnlyADS"), _styleManager.ToggleStyle);
-                    
-                    GUILayout.EndVertical();
-                }
-
-                GUILayout.Space(5);
-
-                // 无后座力
-                _aimbotConfig.EnableNoRecoil = GUILayout.Toggle(_aimbotConfig.EnableNoRecoil, LocalizationManager.Get("UI.Aimbot.EnableNoRecoil"), _styleManager.ToggleStyle);
-            }
-
-            GUILayout.Space(10);
-
-            // ==================== 刀自动攻击设置 ====================
-            if (_meleeAutoAttackConfig != null)
-            {
-                GUILayout.Label(LocalizationManager.Get("UI.MeleeAutoAttack.Title"), _styleManager.TitleLabelStyle);
-                GUILayout.Space(5);
-
-                // 启用刀自动攻击
-                _meleeAutoAttackConfig.Enable = GUILayout.Toggle(_meleeAutoAttackConfig.Enable, LocalizationManager.Get("UI.MeleeAutoAttack.Enable"), _styleManager.ToggleStyle);
-
-                if (_meleeAutoAttackConfig.Enable)
-                {
-                    GUILayout.BeginVertical(GUI.skin.box);
-                    
-                    GUILayout.Label(LocalizationManager.Get("UI.MeleeAutoAttack.Description1"), _styleManager.LabelStyle);
-                    GUILayout.Label(LocalizationManager.Get("UI.MeleeAutoAttack.Description2"), _styleManager.LabelStyle);
-                    GUILayout.Space(5);
-
-                    _meleeAutoAttackConfig.RequireEnemyAiming = GUILayout.Toggle(_meleeAutoAttackConfig.RequireEnemyAiming, LocalizationManager.Get("UI.MeleeAutoAttack.RequireEnemyAiming"), _styleManager.ToggleStyle);
-                    
-                    GUILayout.EndVertical();
-                }
-            }
 
             GUILayout.Space(10);
 
@@ -782,17 +674,6 @@ namespace DuckovESPv3.UI.Windows
             {
                 _lastEnableEnemyLines = _config.EnableEnemyLines;
                 enemyDetailsChanged = true;
-            }
-            
-            // 检查敌人ESP距离变更
-            if (Math.Abs(_config.MaxEnemyESPDistance - _lastMaxEnemyESPDistance) > 0.1f)
-            {
-                _lastMaxEnemyESPDistance = _config.MaxEnemyESPDistance;
-                // 更新所有敌人标记的距离
-                if (_espSystemManager != null)
-                {
-                    _espSystemManager.UpdateEnemyMarkersDistance(_config.MaxEnemyESPDistance);
-                }
             }
             
             // 如果敌人ESP详细配置变更，需要更新所有敌人标记的文本

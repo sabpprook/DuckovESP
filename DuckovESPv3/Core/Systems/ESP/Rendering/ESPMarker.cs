@@ -3,7 +3,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using DuckovESPv3.Core.Systems.ESP.Models;
-using DuckovESPv3.Core.Systems.ESP.Formatting;
 using DuckovESPv3.Core.Configuration;
 
 namespace DuckovESPv3.Core.Systems.ESP.Rendering
@@ -27,7 +26,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
     {
         // ===== 渲染组件 =====
         public SpriteRenderer spriteRenderer;  // 保留但不使用
-        public LineRenderer lineRenderer;
         public Canvas canvas;
         public TextMeshProUGUI nameText;  // 使用 TMP 替代 UI.Text
         public UnityEngine.UI.Image backgroundPanel;  // 背景遮罩
@@ -194,91 +192,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
                     spriteRenderer.enabled = false;
                 }
 
-                // 配置 LineRenderer
-                if (lineRenderer != null)
-                {
-                    lineRenderer.enabled = showLine;
-                    if (showLine)
-                    {
-                        // 判断是否为敌人数据，使用不同样式
-                        bool isEnemy = dataReference is EnemyData;
-                        
-                        if (isEnemy)
-                        {
-                            // 敌人：红色虚线，略粗
-                            var enemyData = (EnemyData)dataReference;
-                            Color enemyLineColor = EnemyInfoFormatter.GetEnemyLineColor(enemyData);
-                            
-                            lineRenderer.startColor = enemyLineColor;
-                            lineRenderer.endColor = new Color(enemyLineColor.r, enemyLineColor.g, enemyLineColor.b, 0.3f);
-                            lineRenderer.startWidth = 0.08f;  // 略粗
-                            lineRenderer.endWidth = 0.03f;
-                            lineRenderer.positionCount = 2;
-                            
-                            // 虚线效果
-                            lineRenderer.textureMode = LineTextureMode.Tile;
-                        }
-                        else
-                        {
-                            // 物品/箱子：原有实线样式
-                            lineRenderer.startColor = color;
-                            lineRenderer.endColor = new Color(color.r, color.g, color.b, 0.3f);
-                            lineRenderer.startWidth = 0.05f;
-                            lineRenderer.endWidth = 0.02f;
-                            lineRenderer.positionCount = 2;
-                        }
-                        
-                        // 确保线条不被遮挡 - 创建一个始终在最前面的材质
-                        Shader? lineShader = null;
-                        
-                        // 敌人虚线需要支持贴图的shader
-                        if (isEnemy)
-                        {
-                            lineShader = Shader.Find("Particles/Additive");
-                            if (lineShader == null)
-                            {
-                                lineShader = Shader.Find("Mobile/Particles/Additive");
-                            }
-                        }
-                        
-                        // 物品实线使用简单shader
-                        if (lineShader == null)
-                        {
-                            lineShader = Shader.Find("Unlit/Color");
-                            if (lineShader == null)
-                            {
-                                lineShader = Shader.Find("Sprites/Default");
-                            }
-                        }
-                        
-                        if (lineShader != null)
-                        {
-                            Material lineMat = new Material(lineShader);
-                            lineMat.renderQueue = 4998;  // 线条在背景之上
-                            lineMat.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Always);  // 永远通过深度测试
-                            
-                            // 虚线效果（敌人）
-                            if (isEnemy)
-                            {
-                                // 创建简单的虚线纹理
-                                Texture2D dashTexture = new Texture2D(32, 1);
-                                for (int i = 0; i < 32; i++)
-                                {
-                                    // 前16像素白色，后16像素透明 = 虚线
-                                    dashTexture.SetPixel(i, 0, i < 16 ? Color.white : Color.clear);
-                                }
-                                dashTexture.Apply();
-                                dashTexture.wrapMode = TextureWrapMode.Repeat;
-                                
-                                lineMat.mainTexture = dashTexture;
-                                lineMat.mainTextureScale = new Vector2(10, 1); // 10段虚线
-                            }
-                            
-                            lineRenderer.material = lineMat;
-                        }
-                    }
-                }
-
                 // 配置名称文本 - 使用游戏标准样式 + 背景遮罩
                 if (canvas != null && nameText != null)
                 {
@@ -365,36 +278,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
                         // 地面物品：显示物品名称
                         nameText.text = itemData.DisplayName;
                     }
-                    else if (dataReference is EnemyData enemyData)
-                    {
-                        // 敌人：显示格式化的敌人信息
-                        // 使用配置控制显示内容，如果配置为null，使用默认配置（全部显示）
-                        if (config != null)
-                        {
-                            nameText.text = EnemyInfoFormatter.FormatEnemyInfo(enemyData, showDistance, config);
-                        }
-                        else
-                        {
-                            // 后备方案：如果没有配置，使用默认全部显示
-                            var defaultConfig = new ESPSystemConfig
-                            {
-                                ShowEnemyHealth = true,
-                                ShowEnemyWeapon = true,
-                                ShowEnemyValue = true
-                            };
-                            nameText.text = EnemyInfoFormatter.FormatEnemyInfo(enemyData, showDistance, defaultConfig);
-                        }
-                        
-                        // 使用敌人威胁等级颜色
-                        Color enemyColor = EnemyInfoFormatter.GetEnemyColor(enemyData);
-                        nameText.color = enemyColor;
-                        
-                        // 更新材质颜色
-                        if (nameText.fontMaterial != null)
-                        {
-                            nameText.fontMaterial.SetColor("_FaceColor", enemyColor);
-                        }
-                    }
                     
                     // 强制更新文本网格
                     nameText.ForceMeshUpdate();
@@ -448,24 +331,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
         {
             _showLine = showLine;
             _showDistance = showDistance;
-            
-            // 立即更新LineRenderer状态
-            if (lineRenderer != null)
-            {
-                lineRenderer.enabled = _showLine;
-            }
-        }
-
-        /// <summary>
-        /// 更新敌人标记文本（血量变化时调用）
-        /// </summary>
-        public void UpdateEnemyText(EnemyData enemyData)
-        {
-            if (nameText != null && _dataReference is EnemyData && _config != null)
-            {
-                nameText.text = EnemyInfoFormatter.FormatEnemyInfo(enemyData, _showDistance, _config);
-                nameText.ForceMeshUpdate();
-            }
         }
 
         /// <summary>
@@ -512,26 +377,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
             {
                 ReturnToPool();
                 return;
-            }
-            
-            // 如果是敌人标记，检查敌人是否已死亡（后备清理机制）
-            if (_dataReference is EnemyData enemyDataRef)
-            {
-                // 检查Health组件是否存在且是否死亡
-                if (enemyDataRef.HealthComponent == null || enemyDataRef.HealthComponent.IsDead)
-                {
-                    Debug.Log($"[ESPMarker] 检测到死亡敌人标记，自动清理: {enemyDataRef.Name}");
-                    ReturnToPool();
-                    return;
-                }
-                
-                // 额外安全检查：Character是否为null（可能已被销毁）
-                if (enemyDataRef.Character == null)
-                {
-                    Debug.Log($"[ESPMarker] 检测到无效敌人引用，自动清理: {enemyDataRef.Name}");
-                    ReturnToPool();
-                    return;
-                }
             }
 
             // 每帧更新摄像机引用，避免摄像机切换导致的问题
@@ -592,13 +437,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
                     if (canvas != null) canvas.enabled = false;
                 }
                 
-                // 连接线：只要在距离内就显示，不受屏幕范围限制
-                // 这样行为和WorldSpace模式一致
-                if (lineRenderer != null)
-                {
-                    lineRenderer.enabled = _showLine && isInRange;
-                }
-                
                 // 如果超出距离，跳过后续更新
                 if (!isInRange)
                 {
@@ -622,14 +460,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
                 {
                     canvas.enabled = isInRange;
                 }
-                
-                if (lineRenderer != null && _showLine)
-                {
-                    if (lineRenderer.enabled != isInRange)
-                    {
-                        lineRenderer.enabled = isInRange;
-                    }
-                }
             }
             
             // 如果超出距离，跳过后续更新
@@ -640,45 +470,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
 
             // 距离淡化
             float alpha = Mathf.Clamp01(1 - (distance / _maxDistance));
-
-            // 更新连接线
-            if (lineRenderer != null && lineRenderer.enabled && _showLine)
-            {
-                lineRenderer.SetPosition(0, _playerTransform.position + Vector3.up * 1.0f);
-                lineRenderer.SetPosition(1, _target.position);
-
-                // 判断是否为敌人，使用不同的连接线颜色
-                Color lineColor;
-                if (_dataReference is EnemyData enemyData)
-                {
-                    // 敌人：使用敌人专用连接线颜色（红色/紫色）
-                    lineColor = EnemyInfoFormatter.GetEnemyLineColor(enemyData);
-                }
-                else
-                {
-                    // 物品/箱子：使用标记颜色
-                    lineColor = _markerColor;
-                }
-
-                // 线条淡化
-                Color startColor = new Color(lineColor.r, lineColor.g, lineColor.b, alpha * 0.6f);
-                Color endColor = new Color(lineColor.r, lineColor.g, lineColor.b, alpha * 0.2f);
-                lineRenderer.startColor = startColor;
-                lineRenderer.endColor = endColor;
-            }
-
-            // 更新敌人距离显示（如果是敌人数据）
-            if (_dataReference is EnemyData enemyDataForUpdate && _showDistance)
-            {
-                // 更新敌人数据中的距离
-                enemyDataForUpdate.DistanceToPlayer = distance;
-                
-                // 更新文本显示（每帧更新）
-                if (nameText != null && _config != null)
-                {
-                    nameText.text = EnemyInfoFormatter.FormatEnemyInfo(enemyDataForUpdate, _showDistance, _config);
-                }
-            }
 
             // 文字保持完全不透明
         }
@@ -723,12 +514,6 @@ namespace DuckovESPv3.Core.Systems.ESP.Rendering
             if (canvas != null)
             {
                 canvas.enabled = false;
-            }
-            
-            // 清理LineRenderer
-            if (lineRenderer != null)
-            {
-                lineRenderer.enabled = false;
             }
             
             _target = null;
