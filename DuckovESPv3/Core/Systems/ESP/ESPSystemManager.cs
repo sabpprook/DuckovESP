@@ -600,13 +600,13 @@ namespace DuckovESPv3.Core.Systems.ESP
         {
             _qualityColors = new Dictionary<ItemValueLevel, Color>
             {
-                { ItemValueLevel.White, new Color(0.8f, 0.8f, 0.8f) },
-                { ItemValueLevel.Green, new Color(0.2f, 1f, 0.2f) },
-                { ItemValueLevel.Blue, new Color(0.3f, 0.5f, 1f) },
-                { ItemValueLevel.Purple, new Color(0.8f, 0.3f, 1f) },
-                { ItemValueLevel.Orange, new Color(1f, 0.6f, 0f) },
-                { ItemValueLevel.LightRed, new Color(1f, 0.5f, 0.5f) },
-                { ItemValueLevel.Red, new Color(1f, 0.2f, 0.2f) }
+                { ItemValueLevel.White, new Color(0.95f, 0.95f, 0.95f) },
+                { ItemValueLevel.Green, new Color(0f, 0.9f, 0f) },
+                { ItemValueLevel.Blue, new Color(0f, 0.8f, 1f) },
+                { ItemValueLevel.Purple, new Color(0.82f, 0.3f, 1f) },
+                { ItemValueLevel.Orange, new Color(1f, 0.67f, 0.2f) },
+                { ItemValueLevel.LightRed, new Color(1f, 0.3f, 0.53f) },
+                { ItemValueLevel.Red, new Color(1f, 0.1f, 0.1f) }
             };
         }
 
